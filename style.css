@@ -1,0 +1,4 @@
+.clipboard-icon:before {
+    content: "\1F4CB"; /* クリップボードのUnicode文字 */
+    font-size: 1em; /* サイズを調整 */
+}

@@ -1,0 +1,7 @@
+base   mizarproofchecker
+author Yamada, M.
+email  yamadam@mizar.work
+date   2024-09-12
+name   Mizar proof checker
+desc   Check proof by Mizar
+url    https://www.dokuwiki.org/plugin:mizarproofchecker
