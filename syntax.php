@@ -41,16 +41,16 @@ class syntax_plugin_mizarproofchecker extends \dokuwiki\Extension\SyntaxPlugin {
         if ($mode == 'xhtml') {
             // ボタンやエディタのHTMLを生成
             $renderer->doc .= '<div class="mizarWrapper" id="' . $mizarId . '">'; // ラッパーdivを追加
-            $renderer->doc .= '<div id="copyMessage" style="display:none;">コンテンツがクリップボードにコピーされました。</div>';
+            $renderer->doc .= '<div id="copyMessage" class="copy-message">コンテンツがクリップボードにコピーされました。</div>';
             $renderer->doc .= '<dl class="file">';
-            $renderer->doc .= '<button id="myEditorButton' . $mizarId . '">Editor</button>';
-            $renderer->doc .= '<button id="verifyButton' . $mizarId . '" style="display:none;">mizf</button>';
-            $renderer->doc .= '<button id="clearButton' . $mizarId . '" style="display:none;">clear</button>';
+            $renderer->doc .= '<button id="myEditorButton' . $mizarId . '" class="editor-button">Editor</button>';
+            $renderer->doc .= '<button id="verifyButton' . $mizarId . '" class="verify-button">mizf</button>';
+            $renderer->doc .= '<button id="clearButton' . $mizarId . '" class="clear-button">clear</button>';
             $renderer->doc .= '<dt><a href="#" onclick="return copyToClipboard(\'' . $mizarId . '\');" title="クリックしてコンテンツをコピー" class="mediafile mf_miz clipboard-icon">' . $filename . '</a></dt>';
             // エディタ用のコンテナを準備
             $renderer->doc .= '<dd><div id="editorContainer' . $mizarId . '" class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';
             $renderer->doc .= '</dl>';
-            $renderer->doc .= '<div id="output' . $mizarId . '" style="padding: 10px; border: 1px solid #ccc; margin-top: 10px; white-space: pre-wrap; display: none;"></div>';
+            $renderer->doc .= '<div id="output' . $mizarId . '" class="output"></div>';
             $renderer->doc .= '<script type="text/javascript" src="' . DOKU_BASE . 'lib/plugins/mizarproofchecker/dist/script.js"></script>';
             $renderer->doc .= '</div>'; // ラッパーdivを閉じる
         } else {

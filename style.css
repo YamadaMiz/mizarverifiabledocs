@@ -2,3 +2,113 @@
     content: "\1F4CB"; /* クリップボードのUnicode文字 */
     font-size: 1em; /* サイズを調整 */
 }
+
+.miz2prel-button {
+    font-size: 17px;
+}
+
+#compileResult {
+    white-space: pre-wrap;
+    margin-top: 10px;
+}
+
+/* コピー完了メッセージのスタイル */
+.copy-message {
+    display: none; /* 初期状態では非表示 */
+}
+
+/* 検証ボタンのスタイル */
+.verify-button {
+    display: none; /* 初期状態では非表示 */
+}
+
+/* クリアボタンのスタイル */
+.clear-button {
+    display: none; /* 初期状態では非表示 */
+}
+
+/* 出力エリアのスタイル */
+.output {
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    display: none; /* 初期状態では非表示 */
+}
+
+/* カスタムテーマ */
+.cm-gutters {
+    padding-top: 5px;
+}
+
+.cm-content {
+    box-shadow: inset -4px -4px 0.5em -0.3em #ccc;
+    border: 1px dashed #ccc;
+    border-radius: 2px;
+    padding: .7em 1em;
+    font-family: Consolas, "Andale Mono WT", "Bitstream Vera Sans Mono", "Nimbus Mono L", Monaco, "Courier New", monospace;
+    background-color: #fbfaf9;
+}
+
+/* エラーパネルのスタイル */
+.cm-error-panel {
+    background: none;
+    color: #000000;
+    padding: 4px;
+}
+
+/* エラー下線のスタイル */
+.error-underline {
+    text-decoration: underline wavy red;
+}
+
+/* 括弧の色 */
+.bracket-color-0 { color: dodgerblue; }
+.bracket-color-1 { color: darkmagenta; }
+.bracket-color-2 { color: darkgoldenrod; }
+.bracket-color-3 { color: darkturquoise; }
+.bracket-color-4 { color: sienna; }
+
+/* 制御キーワード */
+.control-keyword {
+    color: darkmagenta;
+}
+
+/* サポート関数 */
+.function-keyword {
+    color: sienna;
+}
+
+/* 一般的なキーワード */
+.general-keyword {
+    color: dodgerblue;
+}
+
+/* 型名やエンティティ名 */
+.type-name {
+    color: darkturquoise;
+}
+
+/* メタ情報（推論句） */
+.meta-info {
+    color: darkgoldenrod;
+}
+
+/* 行コメント */
+.line-comment {
+    color: darkcyan;
+    font-style: italic;
+}
+
+/* 括弧の色 */
+.paren {
+    color: inherit; /* デフォルトの色を使用 */
+}
+
+.brace {
+    color: inherit; /* デフォルトの色を使用 */
+}
+
+.square-bracket {
+    color: inherit; /* デフォルトの色を使用 */
+}

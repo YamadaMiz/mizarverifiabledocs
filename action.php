@@ -199,7 +199,7 @@ class action_plugin_mizarproofchecker extends ActionPlugin
     }
 
     //  Clear all temporary files in the TEXT folder
-        private function clearTempFiles()
+    private function clearTempFiles()
     {
         $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
         $files = glob($workPath . '*');  // TEXTフォルダ内のすべてのファイルを取得
@@ -214,6 +214,7 @@ class action_plugin_mizarproofchecker extends ActionPlugin
                         if (unlink($file)) {
                             break; // 削除成功
                         }
+                        $errors[] = "Error deleting $file: " . error_get_last()['message'];
                         $retries--;
                         sleep(1); // 1秒待ってリトライ
                     }

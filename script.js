@@ -1,5 +1,6 @@
+"use strict";
 document.addEventListener('DOMContentLoaded', function() {
-    var editButtons = document.querySelector('.editButtons');
+    const editButtons = document.querySelector('.editButtons');
     if (editButtons && !document.getElementById('edbtn__miz2prel')) {
         // URLに「&do=edit」が含まれているかチェックすることで全体編集を判定
         const isFullEdit = document.location.search.includes('&do=edit');
@@ -10,9 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
             miz2prelButton.textContent = 'miz2prel';
             miz2prelButton.id = 'edbtn__miz2prel';
             miz2prelButton.type = 'button';
-            miz2prelButton.style.fontSize = '17px';
+            miz2prelButton.classList.add('miz2prel-button');
 
-            miz2prelButton.addEventListener('click', function() {
+            miz2prelButton.addEventListener('click', async function() {
                 const editor = document.getElementById('wiki__text');
                 if (!editor) {
                     alert('Editor not found');
@@ -25,22 +26,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!outputDiv) {
                     outputDiv = document.createElement('div');
                     outputDiv.id = 'compileResult';
-                    outputDiv.style = 'white-space: pre-wrap; margin-top: 10px;';
                 }
 
                 if (editBar) {
                     editBar.parentNode.insertBefore(outputDiv, editBar.nextSibling);
                 }
 
-                fetch(DOKU_BASE + 'lib/exe/ajax.php?call=source_compile', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: 'content=' + encodeURIComponent(pageContent)
-                })
-                .then(response => response.json())
-                .then(data => {
+                try {
+                    const response = await fetch(DOKU_BASE + 'lib/exe/ajax.php?call=source_compile', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: 'content=' + encodeURIComponent(pageContent)
+                    });
+
+                    const data = await response.json();
+
                     if (data.success) {
                         // SSEで結果を受信
                         const eventSource = new EventSource(DOKU_BASE + 'lib/exe/ajax.php?call=source_sse');
@@ -51,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         eventSource.addEventListener('end', function(event) {
                             outputDiv.innerHTML += "Compilation complete<br>";
                             eventSource.close(); // 接続を閉じる
-                        });
+                        }); // <-- ここで閉じ括弧を追加
 
                         eventSource.onerror = function(event) {
                             console.error('EventSource failed:', event);
@@ -60,11 +62,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         outputDiv.innerHTML = 'Error: ' + data.message;
                     }
-                })
-                .catch((error) => {
+                } catch (error) {
                     console.error('Error:', error);
                     outputDiv.innerHTML = 'Error: ' + error;
-                });
+                }
             });
 
             editButtons.appendChild(miz2prelButton);
