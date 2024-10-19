@@ -12,14 +12,13 @@
 :: licenses, or see http://www.gnu.org/licenses/gpl.html and
 :: http://creativecommons.org/licenses/by-sa/3.0/.
 
-environ１
+environ
 
  vocabularies TARSKI;
  theorems TARSKI_0;
  schemes TARSKI_0;
 
 begin
-
 
 
 
