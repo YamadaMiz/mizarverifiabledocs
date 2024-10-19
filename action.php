@@ -53,6 +53,11 @@ class action_plugin_mizarproofchecker extends ActionPlugin
                 $event->stopPropagation();
                 $this->handleViewSSERequest();
                 break;
+            case 'create_combined_file':
+                $event->preventDefault();
+                $event->stopPropagation();
+                $this->handle_create_combined_file();
+                break;
         }
     }
 
@@ -128,7 +133,7 @@ class action_plugin_mizarproofchecker extends ActionPlugin
         }
 
         $filePath = $_SESSION['view_filepath'];
-        $this->streamCompileOutput($filePath);
+        $this->streamViewCompileOutput($filePath);
 
         echo "event: end\n";
         echo "data: Compilation complete\n\n";
@@ -184,6 +189,15 @@ class action_plugin_mizarproofchecker extends ActionPlugin
                 flush();
             }
             fclose($pipes[1]);
+
+            // エラー処理の追加
+            $errFilename = str_replace('.miz', '.err', $filePath);
+            if ($this->handleCompilationErrors($errFilename, rtrim($this->getConf('mizar_share_dir'), '/\\') . '/mizar.msg')) {
+                // エラーがあった場合は処理を終了
+                proc_close($process);
+                return;
+            }
+
             proc_close($process);
         }
     }
@@ -249,15 +263,15 @@ class action_plugin_mizarproofchecker extends ActionPlugin
         return $locked; // ロックが取得できなければファイルはロックされている
     }
 
-    // コンパイル出力のストリーム
-    private function streamCompileOutput($filePath)
+    // View用コンパイル出力のストリーム
+    private function streamViewCompileOutput($filePath)
     {
         $workPath = $this->getConf('mizar_work_dir');
         $sharePath = rtrim($this->getConf('mizar_share_dir'), '/\\') . '/';
 
         chdir($workPath);
 
-        $tempErrFilename = str_replace('.miz', '.err', $filePath);
+        $errFilename = str_replace('.miz', '.err', $filePath);
         $command = "makeenv " . escapeshellarg($filePath);
         $process = proc_open($command, array(1 => array("pipe", "w"), 2 => array("pipe", "w")), $pipes);
 
@@ -277,27 +291,9 @@ class action_plugin_mizarproofchecker extends ActionPlugin
             fclose($pipes[2]);
             proc_close($process);
 
-            // エラー処理
-            if (file_exists($tempErrFilename)) {
-                $errors = [];
-                $errorLines = file($tempErrFilename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                foreach ($errorLines as $errorLine) {
-                    if (preg_match('/(\d+)\s+(\d+)\s+(\d+)/', $errorLine, $matches)) {
-                        $errors[] = [
-                            'code' => intval($matches[3]),
-                            'line' => intval($matches[1]),
-                            'column' => intval($matches[2]),
-                            'message' => $this->getMizarErrorMessages($sharePath . '/mizar.msg')[intval($matches[3])] ?? 'Unknown error'
-                        ];
-                    }
-                }
-                if (!empty($errors)) {
-                    echo "event: compileErrors\n";
-                    echo "data: " . json_encode($errors) . "\n\n";
-                    ob_flush();
-                    flush();
-                    return;
-                }
+            // エラー処理を別の関数に移動
+            if ($this->handleCompilationErrors($errFilename, $sharePath . '/mizar.msg')) {
+                return;
             }
 
             // verifierの実行
@@ -363,5 +359,69 @@ class action_plugin_mizarproofchecker extends ActionPlugin
         header('Content-Type: application/json');
         echo json_encode(['success' => $success, 'message' => $message, 'data' => $data]);
         exit;
+    }
+
+    private function handleCompilationErrors($errFilename, $mizarMsgFilePath)
+    {
+        if (file_exists($errFilename)) {
+            $errors = [];
+            $errorLines = file($errFilename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (empty($errorLines)) {
+            }
+            foreach ($errorLines as $errorLine) {
+                if (preg_match('/(\d+)\s+(\d+)\s+(\d+)/', $errorLine, $matches)) {
+                    $errorCode = intval($matches[3]);
+                    $errors[] = [
+                        'code' => $errorCode,
+                        'line' => intval($matches[1]),
+                        'column' => intval($matches[2]),
+                        'message' => $this->getMizarErrorMessages($mizarMsgFilePath)[$errorCode] ?? 'Unknown error'
+                    ];
+                }
+            }
+            if (!empty($errors)) {
+                echo "event: compileErrors\n";
+                echo "data: " . json_encode($errors) . "\n\n";
+                ob_flush();
+                flush();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function handle_create_combined_file()
+    {
+        global $INPUT;
+
+        // 投稿されたコンテンツを取得
+        $combinedContent = $INPUT->post->str('content');
+        $filename = $INPUT->post->str('filename', 'combined_file.miz'); // ファイル名を取得、デフォルト名も設定
+
+        // ファイルパスを指定
+        $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
+        $filePath = $workPath . $filename;
+
+        // ファイルを書き込み
+        if (file_put_contents($filePath, $combinedContent) !== false) {
+            // コピー先ディレクトリのパスを指定
+            $copyDir = DOKU_INC . 'lib/plugins/mizarproofchecker/TEXT/';
+
+            // コピー先ディレクトリが存在しない場合は作成する
+            if (!is_dir($copyDir)) {
+                mkdir($copyDir, 0777, true);
+            }
+
+            // ファイルをコピー
+            if (copy($filePath, $copyDir . basename($filePath))) {
+                $fileUrl = DOKU_BASE . 'lib/plugins/mizarproofchecker/TEXT/' . urlencode($filename);
+                $this->sendAjaxResponse(true, 'File created successfully', ['fileUrl' => $fileUrl]);
+                error_log("Generated file URL: " . $fileUrl);
+            } else {
+                $this->sendAjaxResponse(false, 'Failed to copy file');
+            }
+        } else {
+            $this->sendAjaxResponse(false, 'Failed to create file');
+        }
     }
 }

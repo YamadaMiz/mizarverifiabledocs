@@ -40,19 +40,19 @@ class syntax_plugin_mizarproofchecker extends \dokuwiki\Extension\SyntaxPlugin {
 
         if ($mode == 'xhtml') {
             // ボタンやエディタのHTMLを生成
-            $renderer->doc .= '<div class="mizarWrapper" id="' . $mizarId . '">'; // ラッパーdivを追加
-            $renderer->doc .= '<div id="copyMessage" class="copy-message">コンテンツがクリップボードにコピーされました。</div>';
+            $renderer->doc .= '<div class="mizarWrapper" id="' . $mizarId . '">';
             $renderer->doc .= '<dl class="file">';
-            $renderer->doc .= '<button id="myEditorButton' . $mizarId . '" class="editor-button">Editor</button>';
-            $renderer->doc .= '<button id="verifyButton' . $mizarId . '" class="verify-button">mizf</button>';
-            $renderer->doc .= '<button id="clearButton' . $mizarId . '" class="clear-button">clear</button>';
-            $renderer->doc .= '<dt><a href="#" onclick="return copyToClipboard(\'' . $mizarId . '\');" title="クリックしてコンテンツをコピー" class="mediafile mf_miz clipboard-icon">' . $filename . '</a></dt>';
-            // エディタ用のコンテナを準備
-            $renderer->doc .= '<dd><div id="editorContainer' . $mizarId . '" class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';
+            $renderer->doc .= '<button class="copy-button" data-mizarid="' . $mizarId . '">Copy</button>';
+            $renderer->doc .= '<button id="resetButton' . $mizarId . '" class="reset-button">Reset</button>';
+            $renderer->doc .= '<button id="editButton' . $mizarId . '" class="edit-button">Edit</button>';
+            $renderer->doc .= '<button id="mizfButton' . $mizarId . '" class="mizf-button">mizf</button>';
+
+            $renderer->doc .= '<dt><a href="#" onclick="createMizarFile(\'' . $filename . '\'); return false;" title="クリックしてコンテンツをダウンロード" class="file-download">' . $filename . '</a></dt>';
+            $renderer->doc .= '<dd><div class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';
             $renderer->doc .= '</dl>';
             $renderer->doc .= '<div id="output' . $mizarId . '" class="output"></div>';
             $renderer->doc .= '<script type="text/javascript" src="' . DOKU_BASE . 'lib/plugins/mizarproofchecker/dist/script.js"></script>';
-            $renderer->doc .= '</div>'; // ラッパーdivを閉じる
+            $renderer->doc .= '</div>';
         } else {
             $renderer->doc .= "<mizar $filename>$content</mizar>";
         }
