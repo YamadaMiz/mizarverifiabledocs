@@ -8,7 +8,7 @@
 .mizf-button,
 .reset-button {
     font: inherit;
-    display: none; /* 初期状態では非表示 */
+    display: none; /* 初期状態では非表示test */
 }
 
 #compileResult {

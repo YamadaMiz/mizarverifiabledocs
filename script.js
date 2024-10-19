@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const editButtons = document.querySelector('.editButtons');
     if (editButtons && !document.getElementById('edbtn__miz2prel')) {
-        // URLに「&do=edit」が含まれているかチェックすることで全体編集を判定
+        // URLに「&do=edit」が含まれているかチェックすることで全体編集を判定test
         const isFullEdit = document.location.search.includes('&do=edit');
 
         // 全体編集の場合にのみmiz2prelボタンを表示

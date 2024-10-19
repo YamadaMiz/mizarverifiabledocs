@@ -7,7 +7,7 @@ use dokuwiki\Extension\Event;
 class action_plugin_mizarproofchecker extends ActionPlugin
 {
     /**
-     * Registers a callback function for a given event
+     * Registers a callback function for a given event test
      *
      * @param EventHandler $controller DokuWiki's event controller object
      * @return void

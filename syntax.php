@@ -1,7 +1,7 @@
 <?php
 /**
  * DokuWiki Plugin Mizar proof checker (Syntax Component)
- *
+ *test
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Yamada, M. <yamadam@mizar.work>
  */
