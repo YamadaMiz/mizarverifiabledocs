@@ -291,7 +291,7 @@ class action_plugin_mizarproofchecker extends ActionPlugin
             fclose($pipes[2]);
             proc_close($process);
 
-            // エラー処理を別の関数に移動
+            // makeenvのエラー処理
             if ($this->handleCompilationErrors($errFilename, $sharePath . '/mizar.msg')) {
                 return;
             }
@@ -321,6 +321,11 @@ class action_plugin_mizarproofchecker extends ActionPlugin
                 }
                 fclose($verifierPipes[2]);
                 proc_close($verifierProcess);
+
+                // verifierのエラー処理
+                if ($this->handleCompilationErrors($errFilename, $sharePath . '/mizar.msg')) {
+                    return;
+                }
             } else {
                 echo "data: ERROR: Failed to execute verifier command.\n\n";
                 ob_flush();
