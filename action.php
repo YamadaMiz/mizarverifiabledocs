@@ -401,32 +401,18 @@ class action_plugin_mizarproofchecker extends ActionPlugin
 
         // 投稿されたコンテンツを取得
         $combinedContent = $INPUT->post->str('content');
-        $filename = $INPUT->post->str('filename', 'combined_file.miz'); // ファイル名を取得、デフォルト名も設定
+        $filename = $INPUT->post->str('filename', 'combined_file.miz'); // デフォルトのファイル名を指定
 
-        // ファイルパスを指定
-        $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
-        $filePath = $workPath . $filename;
-
-        // ファイルを書き込み
-        if (file_put_contents($filePath, $combinedContent) !== false) {
-            // コピー先ディレクトリのパスを指定
-            $copyDir = DOKU_INC . 'lib/plugins/mizarproofchecker/TEXT/';
-
-            // コピー先ディレクトリが存在しない場合は作成する
-            if (!is_dir($copyDir)) {
-                mkdir($copyDir, 0777, true);
-            }
-
-            // ファイルをコピー
-            if (copy($filePath, $copyDir . basename($filePath))) {
-                $fileUrl = DOKU_BASE . 'lib/plugins/mizarproofchecker/TEXT/' . urlencode($filename);
-                $this->sendAjaxResponse(true, 'File created successfully', ['fileUrl' => $fileUrl]);
-                error_log("Generated file URL: " . $fileUrl);
-            } else {
-                $this->sendAjaxResponse(false, 'Failed to copy file');
-            }
+        // ファイルを保存せず、コンテンツを直接返す
+        if (!empty($combinedContent)) {
+            // ファイルの内容をレスポンスで返す（PHP側でファイルを作成しない）
+            $this->sendAjaxResponse(true, 'File created successfully', [
+                'filename' => $filename,
+                'content' => $combinedContent
+            ]);
+            error_log("File content sent: " . $filename);
         } else {
-            $this->sendAjaxResponse(false, 'Failed to create file');
+            $this->sendAjaxResponse(false, 'Content is empty, no file created');
         }
     }
 }
