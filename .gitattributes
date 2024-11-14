@@ -1,2 +1,12 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Enforce LF line endings for all files
+* text=auto eol=lf
+
+# Files for developers only, exclude from release ZIP
+/src export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/package-lock.json export-ignore
+/package.json export-ignore

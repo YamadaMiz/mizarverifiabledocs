@@ -1,0 +1,150 @@
+@top Program { expression }
+
+expression {
+  expressionPart+
+}
+
+expressionPart {
+  KeywordControl |
+  SupportFunction |
+  KeywordOther |
+  EntityNameType |
+  ReasoningPhrase |
+  Comment |
+  OpenParen expression CloseParen |
+  OpenBrace expression CloseBrace |
+  OpenBracket expression CloseBracket
+}
+
+@tokens {
+  KeywordControl {
+    "implies" |
+    "holds" |
+    "being" |
+    "for" |
+    "st" |
+    "ex " |
+    "not" |
+    "&" |
+    "or" |
+    "iff"
+  }
+  SupportFunction {
+    "equalities" |
+    "expansions" |
+    "theorem" |
+    "theorems" |
+    "scheme" |
+    "definition" |
+    "definitions" |
+    "clusters" |
+    "signature" |
+    "vocabulary" |
+    "vocabularies" |
+    "notation" |
+    "notations" |
+    "constructors" |
+    "registration " |
+    "registrations" |
+    "requirements" |
+    "schemes"
+  }
+  KeywordOther {
+    "irreflexivity" |
+    "connectedness" |
+    "compatibility" |
+    "contradiction" |
+    "correctness" |
+    "associativity" |
+    "commutativity" |
+    "consider" |
+    "consistency" |
+    "antonym" |
+    "canceled" |
+    "otherwise" |
+    "reconsider" |
+    "redefine" |
+    "reflexivity" |
+    "symmetry" |
+    "uniqueness" |
+    "transitivity" |
+    "idempotence" |
+    "asymmetry" |
+    "projectivity" |
+    "involutiveness" |
+    "assume" |
+    "cases" |
+    "given" |
+    "per" |
+    "thus" |
+    "take" |
+    "hence" |
+    "is " |
+    "let" |
+    "and" |
+    "attr" |
+    "as" |
+    "be " |
+    "begin" |
+    "cluster" |
+    "coherence" |
+    "def" |
+    "deffunc" |
+    "defpred" |
+    "environ" |
+    "equals" |
+    "existence" |
+    "func" |
+    "if " |
+    "it" |
+    "means" |
+    "mode" |
+    "of" |
+    "over" |
+    "pred" |
+    "provided" |
+    "qua" |
+    "reserve" |
+    "struct" |
+    "such" |
+    "synonym" |
+    "that" |
+    "then" |
+    "thesis" |
+    "where"
+  }
+  EntityNameType {
+    "end" |
+    "proof" |
+    "now" |
+    "hereby" |
+    "case" |
+    "suppose"
+  }
+  Comment { "::" ![\n]* }
+  ReasoningPhrase { ("by" | "from") ![^\n;]* }
+
+  OpenParen { "(" }
+  CloseParen { ")" }
+  OpenBrace { "{" }
+  CloseBrace { "}" }
+  OpenBracket { "[" }
+  CloseBracket { "]" }
+
+  @precedence {
+    Comment,
+    ReasoningPhrase,
+    KeywordControl,
+    SupportFunction,
+    KeywordOther,
+    EntityNameType,
+    OpenParen,
+    CloseParen,
+    OpenBrace,
+    CloseBrace,
+    OpenBracket,
+    CloseBracket
+  }
+}
+
+@external propSource highlighting from "./highlight.js"
