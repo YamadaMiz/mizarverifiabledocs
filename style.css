@@ -1,3 +1,8 @@
+/*
+ * Mizar proof checker plugin styles
+ *
+ * @author  Yamada, M. <yamadam@mizar.work>
+ */
 .miz2prel-button,
 .edit-button ,
 .copy-button{
@@ -5,7 +10,7 @@
 }
 
 .clear-button,
-.mizf-button,
+.compile-button,
 .reset-button {
     font: inherit;
     display: none; /* 初期状態では非表示 */

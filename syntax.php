@@ -45,7 +45,7 @@ class syntax_plugin_mizarproofchecker extends \dokuwiki\Extension\SyntaxPlugin {
             $renderer->doc .= '<button class="copy-button" data-mizarid="' . $mizarId . '">Copy</button>';
             $renderer->doc .= '<button id="resetButton' . $mizarId . '" class="reset-button">Reset</button>';
             $renderer->doc .= '<button id="editButton' . $mizarId . '" class="edit-button">Edit</button>';
-            $renderer->doc .= '<button id="mizfButton' . $mizarId . '" class="mizf-button">mizf</button>';
+            $renderer->doc .= '<button id="compileButton' . $mizarId . '" class="compile-button">Compile</button>';
 
             $renderer->doc .= '<dt><a href="#" onclick="createMizarFile(\'' . $filename . '\'); return false;" title="クリックしてコンテンツをダウンロード" class="file-download">' . $filename . '</a></dt>';
             $renderer->doc .= '<dd><div class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';

@@ -1,3 +1,8 @@
+/**
+ * * Source view script for the Mizar Proof Checker Plugin
+ *
+ * @author Yamada, M. <yamadam@mizar.work>
+ */
 "use strict";
 document.addEventListener('DOMContentLoaded', function() {
     const editButtons = document.querySelector('.editButtons');

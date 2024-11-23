@@ -2,7 +2,7 @@
 /**
  * Options for the Mizar proof checker
  *
- * @author Yamada, M.
+ * @author Yamada, M. <yamadam@mizar.work>
  */
 
  $meta['mizar_work_dir'] = array('string');

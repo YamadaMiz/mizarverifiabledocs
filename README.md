@@ -1,6 +1,6 @@
 # Mizar Proof Checker Plugin for DokuWiki
 
-This plugin integrates the Mizar proof verification system into DokuWiki, enabling users to write, verify, and debug mathematical proofs within wiki pages. It provides syntax highlighting, error reporting, proof checking, and allows cross-referencing other articles within the wiki for seamless mathematical documentation and collaboration.
+This plugin integrates the Mizar proof verification system into DokuWiki, enabling users to edit and verify mathematical proofs directly within wiki pages. It provides syntax highlighting, error reporting, proof checking, and allows cross-referencing of other articles within the wiki for seamless mathematical documentation and collaboration.
 
 
 ## Documentation

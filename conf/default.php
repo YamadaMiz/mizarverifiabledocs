@@ -2,7 +2,7 @@
 /**
  * Default settings for the Mizar proof checker
  *
- * @author Yamada, M.
+ * @author Yamada, M. <yamadam@mizar.work>
  */
 
  $conf['mizar_work_dir'] = '/var/www/html/mizarwork/';

@@ -1,3 +1,8 @@
+/**
+ * * View screen script for the Mizar Proof Checker Plugin
+ *
+ * @author Yamada, M. <yamadam@mizar.work>
+ */
 "use strict;"
 // 必要なモジュールをインポート
 import { EditorState, Compartment, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";
@@ -220,7 +225,7 @@ function setupMizarBlock(mizarBlock, mizarId) {
     editorOrder.push(mizarId); // エディタのIDを順序付けて保持
 
     const editButton = mizarBlock.querySelector('button[id^="editButton"]');
-    const mizfButton = mizarBlock.querySelector('button[id^="mizfButton"]');
+    const compileButton = mizarBlock.querySelector('button[id^="compileButton"]');
     const resetButton = mizarBlock.querySelector('button[id^="resetButton"]');
 
     editButton.addEventListener('click', () => {
@@ -228,11 +233,11 @@ function setupMizarBlock(mizarBlock, mizarId) {
             effects: editableCompartment.reconfigure(EditorView.editable.of(true)) // 編集可能に設定
         });
         editButton.style.display = 'none';
-        mizfButton.style.display = 'inline';  // 検証ボタンを表示
+        compileButton.style.display = 'inline';  // 検証ボタンを表示
         resetButton.style.display = 'inline'; // resetボタンも表示
     });
 
-    mizfButton.addEventListener('click', () => {
+    compileButton.addEventListener('click', () => {
         if (mizarBlock.isRequestInProgress) {
             return; // すでにこのブロックでリクエストが進行中
         }
@@ -256,7 +261,7 @@ function setupMizarBlock(mizarBlock, mizarId) {
         });
 
         editButton.style.display = 'inline';  // 編集ボタンを再表示
-        mizfButton.style.display = 'none';    // 検証ボタンを非表示
+        compileButton.style.display = 'none';    // 検証ボタンを非表示
         resetButton.style.display = 'none';     // クリアボタンを非表示
 
         // エラーパネルを非表示にする
@@ -470,11 +475,11 @@ function getCombinedContentUntil(mizarBlock) {
 
 function finalizeCompilation(mizarBlock) {
     // mizarBlock から直接ボタン要素を取得
-    const mizfButton = mizarBlock.querySelector('[id^="mizfButton"]');
+    const compileButton = mizarBlock.querySelector('[id^="compileButton"]');
     const resetButton = mizarBlock.querySelector('[id^="resetButton"]');
 
-    // mizfButtonを非表示にし、resetButtonを表示
-    mizfButton.style.display = 'none';
+    // compileButtonを非表示にし、resetButtonを表示
+    compileButton.style.display = 'none';
     resetButton.style.display = 'inline-block';
 
     // このブロックのリクエスト進行中状態をリセット

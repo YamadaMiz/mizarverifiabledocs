@@ -1,8 +1,9 @@
 <?php
 /**
- * japanease language file for Mizar proof checker
+ * japanease language file
  *
- * @author Yamada, M.
+ * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author    Yamada, M. <yamadam@mizar.work>
  */
 
 $lang['mizar_work_dir']  = 'Mizarの作業ディレクトリ（サブディレクトリTEXT, DICT, PRELを含む）';

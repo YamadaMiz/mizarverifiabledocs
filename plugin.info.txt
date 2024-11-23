@@ -1,7 +1,7 @@
 base   mizarproofchecker
 author Yamada, M.
 email  yamadam@mizar.work
-date   2024-11-14
+date   2024-11-23
 name   Mizar proof checker
-desc   Check proof by Mizar
+desc   Edit and verify mathematical proofs within wiki pages using Mizar
 url    https://www.dokuwiki.org/plugin:mizarproofchecker

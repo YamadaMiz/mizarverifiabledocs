@@ -1,8 +1,9 @@
 <?php
 /**
- * english language file for Mizar proof checker
+ * english language file
  *
- * @author Yamada, M.
+ * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author    Yamada, M. <yamadam@mizar.work>
  */
 
  $lang['mizar_work_dir'] = 'Mizar work directory (includes subdirectories like TEXT, DICT, and PREL)';

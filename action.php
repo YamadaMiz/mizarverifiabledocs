@@ -4,6 +4,14 @@ use dokuwiki\Extension\ActionPlugin;
 use dokuwiki\Extension\EventHandler;
 use dokuwiki\Extension\Event;
 
+/**
+ * DokuWiki Plugin Mizar proof checker  (Action Component)
+ *
+ * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
+ * @author  Yamada, M. <yamadam@mizar.work>
+ */
+
+
 class action_plugin_mizarproofchecker extends ActionPlugin
 {
     /**
