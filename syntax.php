@@ -1,11 +1,11 @@
 <?php
 /**
- * DokuWiki Plugin Mizar proof checker (Syntax Component)
+ * DokuWiki Plugin Mizar Verifiable Docs (Syntax Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Yamada, M. <yamadam@mizar.work>
  */
-class syntax_plugin_mizarproofchecker extends \dokuwiki\Extension\SyntaxPlugin {
+class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin {
     /** @inheritDoc */
     public function getType() {
         return 'substition';
@@ -23,7 +23,7 @@ class syntax_plugin_mizarproofchecker extends \dokuwiki\Extension\SyntaxPlugin {
 
     /** @inheritDoc */
     public function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('<mizar\s+[^>]+>.*?</mizar>', $mode, 'plugin_mizarproofchecker');
+        $this->Lexer->addSpecialPattern('<mizar\s+[^>]+>.*?</mizar>', $mode, 'plugin_mizarverifiabledocs');
     }
 
     public function handle($match, $state, $pos, Doku_Handler $handler) {
@@ -51,7 +51,7 @@ class syntax_plugin_mizarproofchecker extends \dokuwiki\Extension\SyntaxPlugin {
             $renderer->doc .= '<dd><div class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';
             $renderer->doc .= '</dl>';
             $renderer->doc .= '<div id="output' . $mizarId . '" class="output"></div>';
-            $renderer->doc .= '<script type="text/javascript" src="' . DOKU_BASE . 'lib/plugins/mizarproofchecker/dist/script.js"></script>';
+            $renderer->doc .= '<script type="text/javascript" src="' . DOKU_BASE . 'lib/plugins/mizarverifiabledocs/dist/script.js"></script>';
             $renderer->doc .= '</div>';
         } else {
             $renderer->doc .= "<mizar $filename>$content</mizar>";

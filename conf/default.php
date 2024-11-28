@@ -1,6 +1,6 @@
 <?php
 /**
- * Default settings for the Mizar proof checker
+ * Default settings for the Mizar Verifiable Docs Plugin
  *
  * @author Yamada, M. <yamadam@mizar.work>
  */

@@ -1,5 +1,5 @@
 /**
- * * Source view script for the Mizar Proof Checker Plugin
+ * * DokuWiki Plugin Mizar Verifiable Docs (Source View Script)
  *
  * @author Yamada, M. <yamadam@mizar.work>
  */
