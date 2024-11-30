@@ -494,6 +494,11 @@ window.createMizarFile = async function(filename) {
         return;
     }
 
+    // ファイル名に拡張子 '.miz' がなければ追加
+    if (!filename.endsWith('.miz')) {
+        filename += '.miz';
+    }
+
     try {
         const response = await fetch(DOKU_BASE + 'lib/exe/ajax.php?call=create_combined_file', {
             method: 'POST',
@@ -512,29 +517,22 @@ window.createMizarFile = async function(filename) {
         if (data.success) {
             console.log('File created successfully:', filename);
 
-            // ファイルの内容を表示する新しいタブを開く
-            const contentWindow = window.open('', '_blank');
-            contentWindow.document.write(`<pre>${data.data.content}</pre>`);
-            contentWindow.document.title = filename;
-
-            // Blobを使ってダウンロードリンクを作成
-            const blob = new Blob([data.data.content], { type: 'text/plain' });
+            // Blobを作成（MIMEタイプを 'application/octet-stream' に設定）
+            const blob = new Blob([data.data.content], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
 
-            // ダウンロードリンクの要素を作成して表示
-            const downloadLink = contentWindow.document.createElement('a');
+            // ダウンロードリンクを作成
+            const downloadLink = document.createElement('a');
             downloadLink.href = url;
-            downloadLink.download = filename;
-            downloadLink.textContent = '⬇️ Click here to download the file';
-            downloadLink.style.display = 'block';
-            downloadLink.style.marginTop = '10px';
-            // タブ内にダウンロードリンクを追加
-            contentWindow.document.body.appendChild(downloadLink);
+            downloadLink.download = filename; // ファイル名を指定（.miz 拡張子付き）
 
-            // リソースの解放
-            contentWindow.addEventListener('unload', () => {
-                URL.revokeObjectURL(url);
-            });
+            // リンクを一時的にDOMに追加してクリックイベントを発生させる
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+
+            // クリーンアップ
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
         } else {
             console.error('Failed to create file:', data.message);
         }

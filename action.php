@@ -8,9 +8,8 @@ use dokuwiki\Extension\Event;
  * DokuWiki Plugin Mizar Verifiable Docs (Action Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Yamada, M. <yamadam@mizar.work>
+ * @author 
  */
-
 
 class action_plugin_mizarverifiabledocs extends ActionPlugin
 {
@@ -39,7 +38,7 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
             case 'clear_temp_files':
                 $event->preventDefault();
                 $event->stopPropagation();
-                $this->clearTempFiles();  // 追加: 一時ファイル削除の呼び出し
+                $this->clearTempFiles();
                 break;
             case 'source_sse':
                 $event->preventDefault();
@@ -76,8 +75,12 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         $pageContent = $INPUT->post->str('content');
         $mizarData = $this->extractMizarContent($pageContent);
 
+        // エラーチェックを追加
         if ($mizarData === null) {
             $this->sendAjaxResponse(false, 'Mizar content not found');
+            return;
+        } elseif (isset($mizarData['error'])) {
+            $this->sendAjaxResponse(false, $mizarData['error']);
             return;
         }
 
@@ -159,17 +162,53 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
             return null;
         }
 
+        // 最初のファイル名を取得し、拡張子を除去
         $fileName = trim($matches[0][1]);
+        $fileNameWithoutExt = preg_replace('/\.miz$/i', '', $fileName);
+
+        // ファイル名のバリデーションを追加
+        if (!$this->isValidFileName($fileNameWithoutExt)) {
+            return ['error' => "Invalid characters in file name: '{$fileNameWithoutExt}'. Only letters, numbers, underscores (_), and apostrophes (') are allowed, up to 8 characters."];
+        }
+
         $combinedContent = '';
 
         foreach ($matches as $match) {
-            if (trim($match[1]) !== $fileName) {
-                return ['error' => 'File name mismatch in <mizar> tags'];
+            $currentFileName = trim($match[1]);
+            $currentFileNameWithoutExt = preg_replace('/\.miz$/i', '', $currentFileName);
+
+            if ($currentFileNameWithoutExt !== $fileNameWithoutExt) {
+                return ['error' => "File name mismatch in <mizar> tags: '{$fileNameWithoutExt}' and '{$currentFileNameWithoutExt}'"];
             }
+
+            // バリデーションを各ファイル名にも適用
+            if (!$this->isValidFileName($currentFileNameWithoutExt)) {
+                return ['error' => "Invalid characters in file name: '{$currentFileNameWithoutExt}'. Only letters, numbers, underscores (_), and apostrophes (') are allowed, up to 8 characters."];
+            }
+
             $combinedContent .= trim($match[2]) . "\n";
         }
 
-        return ['fileName' => $fileName, 'content' => $combinedContent];
+        // ファイル名に拡張子を付加
+        $fullFileName = $fileNameWithoutExt . '.miz';
+
+        return ['fileName' => $fullFileName, 'content' => $combinedContent];
+    }
+
+    // ファイル名のバリデーション関数を追加
+    private function isValidFileName($fileName)
+    {
+        // ファイル名の長さをチェック（最大8文字）
+        if (strlen($fileName) > 8) {
+            return false;
+        }
+
+        // 許可される文字のみを含むかチェック
+        if (!preg_match('/^[A-Za-z0-9_\']+$/', $fileName)) {
+            return false;
+        }
+
+        return true;
     }
 
     // Mizarコンテンツの保存
@@ -220,7 +259,7 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         return $tempFilename;
     }
 
-    //  Clear all temporary files in the TEXT folder
+    // 一時ファイルの削除
     private function clearTempFiles()
     {
         $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
@@ -379,8 +418,6 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         if (file_exists($errFilename)) {
             $errors = [];
             $errorLines = file($errFilename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if (empty($errorLines)) {
-            }
             foreach ($errorLines as $errorLine) {
                 if (preg_match('/(\d+)\s+(\d+)\s+(\d+)/', $errorLine, $matches)) {
                     $errorCode = intval($matches[3]);
