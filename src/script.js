@@ -521,18 +521,28 @@ window.createMizarFile = async function(filename) {
             const blob = new Blob([data.data.content], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
 
+            // 新しいタブを開く
+            const contentWindow = window.open('', '_blank');
+
+            // アーティクル全文を表示
+            contentWindow.document.write('<pre>' + data.data.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+            contentWindow.document.title = filename;
+
             // ダウンロードリンクを作成
-            const downloadLink = document.createElement('a');
+            const downloadLink = contentWindow.document.createElement('a');
             downloadLink.href = url;
             downloadLink.download = filename; // ファイル名を指定（.miz 拡張子付き）
+            downloadLink.textContent = '⬇️ Click here to download the file';
+            downloadLink.style.display = 'block';
+            downloadLink.style.marginTop = '10px';
 
-            // リンクを一時的にDOMに追加してクリックイベントを発生させる
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
+            // タブ内にダウンロードリンクを追加
+            contentWindow.document.body.appendChild(downloadLink);
 
-            // クリーンアップ
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(url);
+            // リソースの解放
+            contentWindow.addEventListener('unload', () => {
+                URL.revokeObjectURL(url);
+            });
         } else {
             console.error('Failed to create file:', data.message);
         }

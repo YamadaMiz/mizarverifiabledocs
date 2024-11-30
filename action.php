@@ -8,7 +8,7 @@ use dokuwiki\Extension\Event;
  * DokuWiki Plugin Mizar Verifiable Docs (Action Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author 
+ * @author  Yamada, M. <yamadam@mizar.work>
  */
 
 class action_plugin_mizarverifiabledocs extends ActionPlugin
