@@ -4,6 +4,22 @@ expression {
   expressionPart+
 }
 
+DefinitionBlock {
+  "definition" expression "end"
+}
+
+Proof {
+  "proof" expression "end"
+}
+
+NowBlock {
+  "now" expression "end"
+}
+
+HerebyBlock {
+  "hereby" expression "end"
+}
+
 expressionPart {
   KeywordControl |
   SupportFunction |
@@ -13,7 +29,11 @@ expressionPart {
   Comment |
   OpenParen expression CloseParen |
   OpenBrace expression CloseBrace |
-  OpenBracket expression CloseBracket
+  OpenBracket expression CloseBracket |
+  DefinitionBlock |
+  Proof |
+  NowBlock |
+  HerebyBlock
 }
 
 @tokens {
@@ -35,7 +55,6 @@ expressionPart {
     "theorem" |
     "theorems" |
     "scheme" |
-    "definition" |
     "definitions" |
     "clusters" |
     "signature" |
@@ -114,10 +133,7 @@ expressionPart {
     "where"
   }
   EntityNameType {
-    "end" |
-    "proof" |
-    "now" |
-    "hereby" |
+    // "proof"，"end"，"now"，"hereby" は削除
     "case" |
     "suppose"
   }

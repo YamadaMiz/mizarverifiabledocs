@@ -12,4 +12,8 @@ export const
   OpenBrace = 10,
   CloseBrace = 11,
   OpenBracket = 12,
-  CloseBracket = 13
+  CloseBracket = 13,
+  DefinitionBlock = 14,
+  Proof = 15,
+  NowBlock = 16,
+  HerebyBlock = 17

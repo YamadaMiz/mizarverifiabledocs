@@ -1,34 +1,37 @@
 /**
  * * DokuWiki Plugin Mizar Verifiable Docs (View Screen Script)
  *
- * @author Yamada, M. <yamadam@mizar.work>
+ * ここでは、折りたたみ機能を追加するために foldGutter, foldKeymap, foldNodeProp, foldInside, codeFolding を追加しています。
  */
 "use strict;"
 // 必要なモジュールをインポート
 import { EditorState, Compartment, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";
-import { EditorView, lineNumbers, showPanel, Decoration, ViewPlugin } from "@codemirror/view";
-import { LRLanguage, LanguageSupport, syntaxHighlighting, HighlightStyle, syntaxTree } from "@codemirror/language";
+import { EditorView, lineNumbers, showPanel, Decoration, ViewPlugin, keymap } from "@codemirror/view";
+import { LRLanguage, LanguageSupport, syntaxHighlighting, HighlightStyle, syntaxTree, foldNodeProp, foldInside, foldGutter, foldKeymap, codeFolding } from "@codemirror/language"; // ★ codeFoldingを追加
 import { parser } from "./mizar-parser.js";
 import { tags as t } from "@lezer/highlight";
 import { highlighting } from "./highlight.js"; // highlight.js からインポート
 
 // スタイルの定義
 const highlightStyle = HighlightStyle.define([
-    { tag: t.controlKeyword, class: "control-keyword" },        // 制御キーワード
-    { tag: t.function(t.keyword), class: "function-keyword" },    // サポート関数
-    { tag: t.keyword, class: "general-keyword" },                // 一般的なキーワード
-    { tag: t.typeName, class: "type-name" },                    // 型名やエンティティ名
-    { tag: t.meta, class: "meta-info" },                        // メタ情報（推論句）
-    { tag: t.lineComment, class: "line-comment" },              // 行コメント
-    { tag: t.paren, class: "paren" },                            // 括弧
-    { tag: t.brace, class: "brace" },                            // 中括弧
-    { tag: t.squareBracket, class: "square-bracket" },          // 角括弧
+    { tag: t.controlKeyword, class: "control-keyword" },
+    { tag: t.function(t.keyword), class: "function-keyword" },
+    { tag: t.keyword, class: "general-keyword" },
+    { tag: t.typeName, class: "type-name" },
+    { tag: t.meta, class: "meta-info" },
+    { tag: t.lineComment, class: "line-comment" },
+    { tag: t.paren, class: "paren" },
+    { tag: t.brace, class: "brace" },
+    { tag: t.squareBracket, class: "square-bracket" },
 ]);
 
-// パーサーの設定
+// パーサー設定: 折りたたみ可能なノードを指定
 let parserWithMetadata = parser.configure({
     props: [
-        highlighting  // highlight.js からインポートした highlighting を使用
+        highlighting,
+        foldNodeProp.add({
+            "Proof": foldInside
+        })
     ]
 });
 
@@ -119,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
             setupMizarBlock(block, mizarId);
         }
     });
-}, { once: true }); // イベントリスナーを一度だけ実行
+}, { once: true });
 
 // パネルの表示を制御するエフェクトとステートフィールド
 const toggleErrorPanel = StateEffect.define();
@@ -144,29 +147,27 @@ function createPanel(content) {
 }
 
 function calculateStartLineNumber(targetMizarId) {
-    let totalLines = 1; // 最初の行を1に変更
+    let totalLines = 1;
     for (let mizarId of editorOrder) {
         if (mizarId === targetMizarId) {
             break;
         }
         totalLines += editors[mizarId].state.doc.lines;
     }
-    return totalLines; // ここで+1を追加しない
+    return totalLines;
 }
 
 function adjustLineNumbersForAllEditors() {
-    let totalLines = 1; // 最初の行を1に変更
+    let totalLines = 1;
     for (let mizarId of editorOrder) {
         const editor = editors[mizarId];
         const startLine = totalLines;
         const lineNumberExtension = lineNumbers({
             formatNumber: number => `${number + startLine - 1}`
         });
-        // Compartmentのreconfigureメソッドを使用して設定を更新
         editor.dispatch({
             effects: lineNumberConfigs[mizarId].reconfigure(lineNumberExtension)
         });
-        // 次のエディタの開始行番号のために行数を加算
         totalLines += editor.state.doc.lines;
     }
 }
@@ -190,39 +191,39 @@ function setupMizarBlock(mizarBlock, mizarId) {
     editorContainer.id = `editorContainer${mizarId}`;
     const editorContent = editorContainer.getAttribute('data-content');
 
-    // テンポラリDOM要素を作成してinnerHTMLに設定することでデコードを実行
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = editorContent;
     const decodedContent = tempDiv.textContent || tempDiv.innerText || "";
 
     const lineNumberConfig = new Compartment();
-    lineNumberConfigs[mizarId] = lineNumberConfig;  // 各エディタの設定を保持
+    lineNumberConfigs[mizarId] = lineNumberConfig;
 
-    // EditorViewの初期化部分
+    // codeFolding()を追加して折りたたみを有効化
     const editor = new EditorView({
         state: EditorState.create({
-            doc: decodedContent, // デコードされたコンテンツを使用
+            doc: decodedContent,
             extensions: [
                 lineNumberConfig.of(lineNumbers({ formatNumber: number => `${number + calculateStartLineNumber(mizarId) - 1}` })),
-                // EditorCustomThemeは削除
-                editableCompartment.of(EditorView.editable.of(false)),  // 初期状態を読み取り専用に設定
-                syntaxHighlighting(highlightStyle),  // 追加: ハイライトスタイルの適用
+                editableCompartment.of(EditorView.editable.of(false)),
+                syntaxHighlighting(highlightStyle),
+                codeFolding(),       // ★ 追加
+                foldGutter(),        // ★ 折りたたみガター
+                keymap.of(foldKeymap), // ★ 折りたたみ用キーマップ
                 bracketHighlighter(),
                 EditorView.updateListener.of(update => {
                     if (update.docChanged) {
-                        adjustLineNumbersForAllEditors();  // すべてのエディタの行番号を更新
+                        adjustLineNumbersForAllEditors();
                     }
                 }),
                 errorPanelState,
                 errorDecorationsField,
-                syntaxHighlighting(highlightStyle),
-                mizar() // Mizarの言語サポートを追加
+                mizar()
             ]
         }),
         parent: editorContainer
     });
-    window.editors[mizarId] = editor; // エディタをオブジェクトに追加
-    editorOrder.push(mizarId); // エディタのIDを順序付けて保持
+    window.editors[mizarId] = editor;
+    editorOrder.push(mizarId);
 
     const editButton = mizarBlock.querySelector('button[id^="editButton"]');
     const compileButton = mizarBlock.querySelector('button[id^="compileButton"]');
@@ -230,48 +231,45 @@ function setupMizarBlock(mizarBlock, mizarId) {
 
     editButton.addEventListener('click', () => {
         editor.dispatch({
-            effects: editableCompartment.reconfigure(EditorView.editable.of(true)) // 編集可能に設定
+            effects: editableCompartment.reconfigure(EditorView.editable.of(true))
         });
         editButton.style.display = 'none';
-        compileButton.style.display = 'inline';  // 検証ボタンを表示
-        resetButton.style.display = 'inline'; // resetボタンも表示
+        compileButton.style.display = 'inline';
+        resetButton.style.display = 'inline';
     });
 
     compileButton.addEventListener('click', () => {
         if (mizarBlock.isRequestInProgress) {
-            return; // すでにこのブロックでリクエストが進行中
+            return;
         }
-        mizarBlock.isRequestInProgress = true; // リクエスト開始をマーク
+        mizarBlock.isRequestInProgress = true;
         startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId);
     });
 
     resetButton.addEventListener('click', async () => {
-        // エディタを最初の状態に戻す（Wiki本体に保存されている文書を再読み込み）
-        const initialContent = editorContainer.getAttribute('data-content'); // 初期コンテンツを再取得
-        const tempDiv = document.createElement('div'); // HTMLエンティティのデコード用
+        const initialContent = editorContainer.getAttribute('data-content');
+        const tempDiv = document.createElement('div');
         tempDiv.innerHTML = initialContent;
         const decodedContent = tempDiv.textContent || tempDiv.innerText || "";
 
         editor.dispatch({
-            changes: { from: 0, to: editor.state.doc.length, insert: decodedContent } // 初期コンテンツを挿入
+            changes: { from: 0, to: editor.state.doc.length, insert: decodedContent }
         });
 
         editor.dispatch({
-            effects: editableCompartment.reconfigure(EditorView.editable.of(false)) // 読み取り専用に戻す
+            effects: editableCompartment.reconfigure(EditorView.editable.of(false))
         });
 
-        editButton.style.display = 'inline';  // 編集ボタンを再表示
-        compileButton.style.display = 'none';    // 検証ボタンを非表示
-        resetButton.style.display = 'none';     // クリアボタンを非表示
+        editButton.style.display = 'inline';
+        compileButton.style.display = 'none';
+        resetButton.style.display = 'none';
 
-        // エラーパネルを非表示にする
         editor.dispatch({
-            effects: toggleErrorPanel.of(null)  // エラーパネルを非表示に設定
+            effects: toggleErrorPanel.of(null)
         });
 
-        // エラーデコレーションも削除する
         editor.dispatch({
-            effects: errorDecorationEffect.of([])  // エラーデコレーションをリセット
+            effects: errorDecorationEffect.of([])
         });
 
         try {
@@ -282,13 +280,11 @@ function setupMizarBlock(mizarBlock, mizarId) {
                 }
             });
 
-            // JSONで返ってくることを期待する
             const text = await response.text();
             let data;
             try {
                 data = JSON.parse(text);
             } catch (error) {
-                // JSONのパースに失敗した場合はHTMLレスポンスだと判断
                 throw new Error("Server returned a non-JSON response: " + text);
             }
 
@@ -302,7 +298,7 @@ function setupMizarBlock(mizarBlock, mizarId) {
         }
     });
 
-    // Enterキーで行を増やすリスナーを追加
+    // Enterキーで行追加
     editor.dom.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && editor.state.facet(EditorView.editable)) {
             e.preventDefault();
@@ -322,7 +318,6 @@ function scrollToLine(editor, line) {
 }
 
 async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
-    // 既存のイベントソースがあれば閉じる
     if (mizarBlock.eventSource) {
         mizarBlock.eventSource.close();
     }
@@ -353,7 +348,6 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
                 effects: toggleErrorPanel.of(content)
             });
 
-            // エラーメッセージが含まれているかどうかをチェックしてパネルの背景色を設定
             if (content.includes('❌')) {
                 editor.dom.querySelector('.cm-error-panel').style.backgroundColor = '#fcc';
             } else {
@@ -361,24 +355,17 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
             }
         };
 
-        // コンパイルが完了したことを示すイベントを受け取る
-        mizarBlock.eventSource.addEventListener('compileFinished', () => {
-            finalizeCompilation(mizarBlock);
-        });
-
-        // エラー情報がある場合に受信するイベントリスナー
         mizarBlock.eventSource.addEventListener('compileErrors', function(event) {
             try {
                 const errors = JSON.parse(event.data);
                 let errorContent = editors[mizarId].state.field(errorPanelState) || '';
-                const decorationsPerEditor = {}; // 各エディタのデコレーションを保持
+                const decorationsPerEditor = {};
 
                 errors.forEach(function(error) {
                     const { line, column, message } = error;
                     const link = `<a href="#" class="error-link" data-line="${line}" data-column="${column}">[Ln ${line}, Col ${column}]</a>`;
                     errorContent += `❌ ${message} ${link}<br>`;
 
-                    // エラー位置に下線を引くデコレーションを追加
                     const editorInfo = getEditorForGlobalLine(line);
                     if (editorInfo) {
                         const { editor, localLine } = editorInfo;
@@ -386,10 +373,10 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
                         const from = lineInfo.from + (column - 1);
                         const to = from + 1;
 
-                        if (from >= lineInfo.from && to <= lineInfo.to) { // 範囲が有効であることを確認
+                        if (from >= lineInfo.from && to <= lineInfo.to) {
                             const deco = Decoration.mark({
                                 class: "error-underline",
-                                attributes: { title: `${message} (Ln ${line}, Col ${column})` }  // ツールチップの追加
+                                attributes: { title: `${message} (Ln ${line}, Col ${column})` }
                             }).range(from, to);
                             const editorId = Object.keys(editors).find(key => editors[key] === editor);
                             if (!decorationsPerEditor[editorId]) {
@@ -400,7 +387,6 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
                     }
                 });
 
-                // 各エディタにデコレーションを適用
                 for (let editorId in decorationsPerEditor) {
                     const editor = editors[editorId];
                     const decorations = decorationsPerEditor[editorId];
@@ -411,21 +397,18 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
                     }
                 }
 
-                // エラーとコンパイル結果を指定ブロックにのみ適用
                 editors[mizarId].dispatch({
                     effects: [
                         toggleErrorPanel.of(errorContent)
                     ]
                 });
 
-                // エラーメッセージが含まれているかどうかをチェックしてパネルの背景色を設定
                 if (errorContent.includes('❌')) {
                     editors[mizarId].dom.querySelector('.cm-error-panel').style.backgroundColor = '#fcc';
                 } else {
                     editors[mizarId].dom.querySelector('.cm-error-panel').style.backgroundColor = '#ccffcc';
                 }
 
-                // エラーメッセージ内のリンクにクリックイベントを追加
                 const errorPanel = editors[mizarId].dom.querySelector('.cm-error-panel');
                 errorPanel.querySelectorAll('.error-link').forEach(link => {
                     link.addEventListener('click', function(e) {
@@ -447,7 +430,7 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
         mizarBlock.eventSource.onerror = () => {
             mizarBlock.eventSource.close();
             mizarBlock.isRequestInProgress = false;
-            finalizeCompilation(mizarBlock); // コンパイル処理が完了した後の処理
+            finalizeCompilation(mizarBlock);
         };
     } catch (error) {
         console.error("Fetch error: ", error);
@@ -460,13 +443,12 @@ function getCombinedContentUntil(mizarBlock) {
     const mizarBlocks = document.querySelectorAll('.mizarWrapper');
     const blockIndex = Array.from(mizarBlocks).indexOf(mizarBlock);
 
-    // 指定したブロックまでのコンテンツを結合
     for (let i = 0; i <= blockIndex; i++) {
         const mizarId = editorOrder[i];
         const editor = editors[mizarId];
         if (editor && editor.state) {
             const blockContent = editor.state.doc.toString();
-            combinedContent += blockContent + "\n"; // 正しい順序でコンテンツを追加
+            combinedContent += blockContent + "\n";
         }
     }
 
@@ -474,15 +456,12 @@ function getCombinedContentUntil(mizarBlock) {
 }
 
 function finalizeCompilation(mizarBlock) {
-    // mizarBlock から直接ボタン要素を取得
     const compileButton = mizarBlock.querySelector('[id^="compileButton"]');
     const resetButton = mizarBlock.querySelector('[id^="resetButton"]');
 
-    // compileButtonを非表示にし、resetButtonを表示
     compileButton.style.display = 'none';
     resetButton.style.display = 'inline-block';
 
-    // このブロックのリクエスト進行中状態をリセット
     mizarBlock.isRequestInProgress = false;
 }
 
@@ -494,7 +473,6 @@ window.createMizarFile = async function(filename) {
         return;
     }
 
-    // ファイル名に拡張子 '.miz' がなければ追加
     if (!filename.endsWith('.miz')) {
         filename += '.miz';
     }
@@ -517,29 +495,21 @@ window.createMizarFile = async function(filename) {
         if (data.success) {
             console.log('File created successfully:', filename);
 
-            // Blobを作成（MIMEタイプを 'application/octet-stream' に設定）
             const blob = new Blob([data.data.content], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
 
-            // 新しいタブを開く
             const contentWindow = window.open('', '_blank');
-
-            // アーティクル全文を表示
             contentWindow.document.write('<pre>' + data.data.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
             contentWindow.document.title = filename;
 
-            // ダウンロードリンクを作成
             const downloadLink = contentWindow.document.createElement('a');
             downloadLink.href = url;
-            downloadLink.download = filename; // ファイル名を指定（.miz 拡張子付き）
+            downloadLink.download = filename;
             downloadLink.textContent = '⬇️ Click here to download the file';
             downloadLink.style.display = 'block';
             downloadLink.style.marginTop = '10px';
-
-            // タブ内にダウンロードリンクを追加
             contentWindow.document.body.appendChild(downloadLink);
 
-            // リソースの解放
             contentWindow.addEventListener('unload', () => {
                 URL.revokeObjectURL(url);
             });
@@ -568,10 +538,9 @@ document.addEventListener("DOMContentLoaded", () => {
     copyButtons.forEach((button) => {
         button.addEventListener('click', (event) => {
             const buttonElement = event.currentTarget;
-            const mizarIdRaw = buttonElement.dataset.mizarid; // mizarBlock12 形式を取得
-            const mizarId = mizarIdRaw.replace('mizarBlock', ''); // 数字部分を抽出
+            const mizarIdRaw = buttonElement.dataset.mizarid;
+            const mizarId = mizarIdRaw.replace('mizarBlock', '');
 
-            // エディタが存在するか確認
             if (!editors[mizarId]) {
                 console.error('エディタが見つかりません: ', mizarIdRaw);
                 return;
@@ -580,7 +549,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const editor = editors[mizarId];
             const content = editor.state.doc.toString();
 
-            // クリップボードにコピー
             navigator.clipboard.writeText(content).then(() => {
                 buttonElement.textContent = 'Copied!';
                 buttonElement.disabled = true;

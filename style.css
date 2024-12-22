@@ -106,3 +106,14 @@
 .square-bracket {
     color: inherit; /* デフォルトの色を使用 */
 }
+
+.cm-foldGutter .cm-gutterElement {
+    cursor: pointer;
+    color: gray;
+  }
+  .cm-foldGutter .cm-foldPlaceholder {
+    color: darkgray;
+    font-style: italic;
+    padding: 0 2px;
+  }
+  
