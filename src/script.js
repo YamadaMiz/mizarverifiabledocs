@@ -1,9 +1,8 @@
 /**
  * * DokuWiki Plugin Mizar Verifiable Docs (View Screen Script)
  *
- * ここでは、折りたたみ機能を追加するために foldGutter, foldKeymap, foldNodeProp, foldInside, codeFolding を追加しています。
  */
-"use strict;"
+
 // 必要なモジュールをインポート
 import { EditorState, Compartment, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";
 import { EditorView, lineNumbers, showPanel, Decoration, ViewPlugin, keymap } from "@codemirror/view";
@@ -122,6 +121,40 @@ document.addEventListener("DOMContentLoaded", function () {
             setupMizarBlock(block, mizarId);
         }
     });
+
+    // ★ 追加: Hide/Show ボタンのトグル処理
+    const toggleButtons = document.querySelectorAll('.toggle-button');
+    toggleButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const parentWrapper = button.closest('.mizarWrapper');
+            if (!parentWrapper) return;
+
+            // 非表示にしたい要素をまとめて取得
+            const elementsToToggle = parentWrapper.querySelectorAll(
+                '.editor-container, .copy-button, .edit-button, .reset-button, .compile-button'
+            );
+
+            // 先頭の要素（editor-container など）を基準に
+            // 「今、非表示かどうか」を判定
+            const firstElement = elementsToToggle[0];
+            const isHidden = firstElement && firstElement.style.display === 'none';
+
+            if (isHidden) {
+                // もし隠れていたら → すべて表示にする
+                elementsToToggle.forEach(el => {
+                    el.style.display = '';
+                });
+                button.textContent = 'Hide';
+            } else {
+                // 表示されていたら → すべて非表示にする
+                elementsToToggle.forEach(el => {
+                    el.style.display = 'none';
+                });
+                button.textContent = 'Show';
+            }
+        });
+    });
+
 }, { once: true });
 
 // パネルの表示を制御するエフェクトとステートフィールド

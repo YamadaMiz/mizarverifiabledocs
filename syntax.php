@@ -46,12 +46,13 @@ class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin
             $renderer->doc .= '<button id="resetButton' . $mizarId . '" class="reset-button">Reset</button>';
             $renderer->doc .= '<button id="editButton' . $mizarId . '" class="edit-button">Edit</button>';
             $renderer->doc .= '<button id="compileButton' . $mizarId . '" class="compile-button">Compile</button>';
+             $renderer->doc .= '<button id="toggleButton' . $mizarId . '" class="toggle-button">Hide</button>';
 
             $renderer->doc .= '<dt><a href="#" onclick="createMizarFile(\'' . $filename . '\'); return false;" title="クリックしてコンテンツをダウンロード" class="file-download">' . $filename . '</a></dt>';
             $renderer->doc .= '<dd><div class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';
             $renderer->doc .= '</dl>';
             $renderer->doc .= '<div id="output' . $mizarId . '" class="output"></div>';
-            $renderer->doc .= '<script type="text/javascript" src="' . DOKU_BASE . 'lib/plugins/mizarverifiabledocs/dist/script.js"></script>';
+            $renderer->doc .= '<script type="module" src="' . DOKU_BASE . 'lib/plugins/mizarverifiabledocs/dist/script.js"></script>';
             $renderer->doc .= '</div>';
         } else {
             $renderer->doc .= "<mizar $filename>$content</mizar>";
