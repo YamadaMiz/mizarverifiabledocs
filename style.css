@@ -3,15 +3,29 @@
  *
  * @author  Yamada, M. <yamadam@mizar.work>
  */
+
+/* Hide All ボタンのコンテナ */
+.hideAllContainer {
+    border: none;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+/* 他のスタイル（ユーザーが提供したもの） */
 .miz2prel-button,
-.edit-button ,
-.copy-button{
+.edit-button,
+.copy-button,
+.hide-all-button,
+.hide-button
+ {
     font: inherit;
 }
 
 .clear-button,
 .compile-button,
-.reset-button {
+.reset-button,
+.show-button
+{
     font: inherit;
     display: none; /* 初期状態では非表示 */
 }
@@ -110,10 +124,10 @@
 .cm-foldGutter .cm-gutterElement {
     cursor: pointer;
     color: gray;
-  }
-  .cm-foldGutter .cm-foldPlaceholder {
+}
+
+.cm-foldGutter .cm-foldPlaceholder {
     color: darkgray;
     font-style: italic;
     padding: 0 2px;
-  }
-  
+}

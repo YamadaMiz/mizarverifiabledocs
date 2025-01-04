@@ -1,5 +1,5 @@
 /**
- * * DokuWiki Plugin Mizar Verifiable Docs (View Screen Script)
+ * DokuWiki Plugin Mizar Verifiable Docs (View Screen Script)
  *
  */
 
@@ -61,27 +61,26 @@ function bracketHighlighter() {
         const colors = ['bracket-color-0', 'bracket-color-1', 'bracket-color-2', 'bracket-color-3', 'bracket-color-4'];
 
         syntaxTree(view.state).iterate({
-          enter: ({ type, from, to }) => {
-            if (type.is('OpenParen') || type.is('OpenBrace') || type.is('OpenBracket')) {
-              stack.push({ type, from, to });
-              const level = stack.length % colors.length;
-              builder.add(from, to, Decoration.mark({ class: colors[level] }));
-            } else if (type.is('CloseParen') || type.is('CloseBrace') || type.is('CloseBracket')) {
-              const open = stack.pop();
-              if (open) {
-                const level = (stack.length + 1) % colors.length;
-                builder.add(from, to, Decoration.mark({ class: colors[level] }));
-              }
+            enter: ({ type, from, to }) => {
+                if (type.is('OpenParen') || type.is('OpenBrace') || type.is('OpenBracket')) {
+                    stack.push({ type, from, to });
+                    const level = stack.length % colors.length;
+                    builder.add(from, to, Decoration.mark({ class: colors[level] }));
+                } else if (type.is('CloseParen') || type.is('CloseBrace') || type.is('CloseBracket')) {
+                    const open = stack.pop();
+                    if (open) {
+                        const level = (stack.length + 1) % colors.length;
+                        builder.add(from, to, Decoration.mark({ class: colors[level] }));
+                    }
+                }
             }
-          }
         });
-
         return builder.finish();
       }
     }, {
       decorations: v => v.decorations
     });
-  }
+}
 
 const editableCompartment = new Compartment();  // 共有Compartment
 // グローバルオブジェクトとしてエディタを管理
@@ -105,6 +104,25 @@ const errorDecorationsField = StateField.define({
     provide: f => EditorView.decorations.from(f)
 });
 
+// 表示切替関数を修正
+function toggleMizarEditor(wrapper, hide) {
+    const elementsToToggle = wrapper.querySelectorAll(
+        '.editor-container, .copy-button, .edit-button, .reset-button, .compile-button'
+    );
+
+    elementsToToggle.forEach(el => {
+        el.style.display = hide ? 'none' : '';
+    });
+
+    // Show/Hide ボタンの表示を切り替え
+    const hideButton = wrapper.querySelector('.hide-button');
+    const showButton = wrapper.querySelector('.show-button');
+    if (hideButton && showButton) {
+        hideButton.style.display = hide ? 'none' : 'inline';
+        showButton.style.display = hide ? 'inline' : 'none';
+    }
+}
+
 // DOMContentLoaded時の初期化
 document.addEventListener("DOMContentLoaded", function () {
     window.mizarInitialized = true;
@@ -122,39 +140,53 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // ★ 追加: Hide/Show ボタンのトグル処理
-    const toggleButtons = document.querySelectorAll('.toggle-button');
-    toggleButtons.forEach((button) => {
+    // Hide ボタンのクリックハンドラ
+    const hideButtons = document.querySelectorAll('.hide-button');
+    hideButtons.forEach((button) => {
         button.addEventListener('click', () => {
             const parentWrapper = button.closest('.mizarWrapper');
             if (!parentWrapper) return;
-
-            // 非表示にしたい要素をまとめて取得
-            const elementsToToggle = parentWrapper.querySelectorAll(
-                '.editor-container, .copy-button, .edit-button, .reset-button, .compile-button'
-            );
-
-            // 先頭の要素（editor-container など）を基準に
-            // 「今、非表示かどうか」を判定
-            const firstElement = elementsToToggle[0];
-            const isHidden = firstElement && firstElement.style.display === 'none';
-
-            if (isHidden) {
-                // もし隠れていたら → すべて表示にする
-                elementsToToggle.forEach(el => {
-                    el.style.display = '';
-                });
-                button.textContent = 'Hide';
-            } else {
-                // 表示されていたら → すべて非表示にする
-                elementsToToggle.forEach(el => {
-                    el.style.display = 'none';
-                });
-                button.textContent = 'Show';
-            }
+            toggleMizarEditor(parentWrapper, true);
         });
     });
 
+    // Show ボタンのクリックハンドラ
+    const showButtons = document.querySelectorAll('.show-button');
+    showButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const parentWrapper = button.closest('.mizarWrapper');
+            if (!parentWrapper) return;
+            toggleMizarEditor(parentWrapper, false);
+        });
+    });
+
+    const hideAllButton = document.getElementById('hideAllButton');
+    const showAllButton = document.getElementById('showAllButton');
+
+    if (hideAllButton && showAllButton) {
+        hideAllButton.addEventListener('click', (e) => {
+            // Hide All 処理
+            toggleAllWrappers(true); // 全て hide
+            hideAllButton.style.display = 'none';
+            showAllButton.style.display = '';
+            e.target.blur(); // フォーカスを外す
+        });
+
+        showAllButton.addEventListener('click', (e) => {
+            // Show All 処理
+            toggleAllWrappers(false); // 全て show
+            showAllButton.style.display = 'none';
+            hideAllButton.style.display = '';
+            e.target.blur(); // フォーカスを外す
+        });
+    }
+
+    function toggleAllWrappers(hide) {
+        const allWrappers = document.querySelectorAll('.mizarWrapper');
+        allWrappers.forEach((wrapper) => {
+            toggleMizarEditor(wrapper, hide);
+        });
+    }
 }, { once: true });
 
 // パネルの表示を制御するエフェクトとステートフィールド

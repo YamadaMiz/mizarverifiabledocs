@@ -46,7 +46,8 @@ class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin
             $renderer->doc .= '<button id="resetButton' . $mizarId . '" class="reset-button">Reset</button>';
             $renderer->doc .= '<button id="editButton' . $mizarId . '" class="edit-button">Edit</button>';
             $renderer->doc .= '<button id="compileButton' . $mizarId . '" class="compile-button">Compile</button>';
-             $renderer->doc .= '<button id="toggleButton' . $mizarId . '" class="toggle-button">Hide</button>';
+            $renderer->doc .= '<button id="hideButton' . $mizarId . '" class="hide-button">Hide</button>';
+            $renderer->doc .= '<button id="showButton' . $mizarId . '" class="show-button">Show</button>';
 
             $renderer->doc .= '<dt><a href="#" onclick="createMizarFile(\'' . $filename . '\'); return false;" title="クリックしてコンテンツをダウンロード" class="file-download">' . $filename . '</a></dt>';
             $renderer->doc .= '<dd><div class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';

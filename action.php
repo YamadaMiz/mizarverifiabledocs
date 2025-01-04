@@ -8,7 +8,7 @@ use dokuwiki\Extension\Event;
  * DokuWiki Plugin Mizar Verifiable Docs (Action Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Yamada, M. <yamadam@mizar.work>
+ * @author  Yamada, M.
  */
 
 class action_plugin_mizarverifiabledocs extends ActionPlugin
@@ -22,6 +22,46 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
     public function register(EventHandler $controller)
     {
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handle_ajax_call');
+        $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'handle_tpl_content_display');
+    }
+
+    /**
+     * Handles the TPL_CONTENT_DISPLAY event to insert "Hide All" button
+     *
+     * @param Event $event
+     * @param mixed $_param Unused parameter
+     * @return void
+     */
+    public function handle_tpl_content_display(Event $event, $_param)
+    {
+        // データが文字列かどうか確認
+        if (!is_string($event->data)) {
+            error_log('handle_tpl_content_display: data is not a string! ' . print_r($event->data, true));
+            return;
+        }
+
+        $html = $event->data;
+
+        // "mizarWrapper" クラスが存在するか確認
+        if (strpos($html, 'mizarWrapper') !== false) {
+            // 既にボタンが挿入されているか確認（複数回挿入しないため）
+            if (strpos($html, 'id="hideAllButton"') === false) {
+                $buttonHtml = '<div class="hideAllContainer">'
+                            . '<button id="hideAllButton" class="hide-all-button">Hide All</button>'
+                            . '<button id="showAllButton" class="hide-all-button" style="display:none;">Show All</button>'
+                            . '</div>';
+
+                // 先頭にボタンを挿入
+                $html = $buttonHtml . $html;
+                $event->data = $html;
+
+                // デバッグ用ログ
+                error_log('handle_tpl_content_display: "Hide All" ボタンを挿入しました。');
+            } else {
+                // ボタンが既に存在する場合
+                error_log('handle_tpl_content_display: "Hide All" ボタンは既に存在します。');
+            }
+        }
     }
 
     /**
