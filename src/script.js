@@ -162,6 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const hideAllButton = document.getElementById('hideAllButton');
     const showAllButton = document.getElementById('showAllButton');
+    const resetAllButton = document.getElementById('resetAllButton');  // ★ 追加
 
     if (hideAllButton && showAllButton) {
         hideAllButton.addEventListener('click', (e) => {
@@ -185,6 +186,22 @@ document.addEventListener("DOMContentLoaded", function () {
         const allWrappers = document.querySelectorAll('.mizarWrapper');
         allWrappers.forEach((wrapper) => {
             toggleMizarEditor(wrapper, hide);
+        });
+    }
+
+    // ★ Reset All ボタンのイベントリスナーを追加
+    if (resetAllButton) {
+        resetAllButton.addEventListener('click', (e) => {
+            const allWrappers = document.querySelectorAll('.mizarWrapper');
+            allWrappers.forEach(wrapper => {
+                const resetBtn = wrapper.querySelector('button[id^="resetButton"]');
+                if (resetBtn) {
+                    // resetBtn の clickイベントを強制的に発火
+                    resetBtn.click();
+                }
+            });
+            // クリックされた要素（Reset All ボタン）からフォーカスを外す
+            e.target.blur();
         });
     }
 }, { once: true });

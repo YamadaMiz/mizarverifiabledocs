@@ -49,13 +49,12 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
                 $buttonHtml = '<div class="hideAllContainer">'
                             . '<button id="hideAllButton" class="hide-all-button">Hide All</button>'
                             . '<button id="showAllButton" class="hide-all-button" style="display:none;">Show All</button>'
+                            . '<button id="resetAllButton" class="reset-all-button">Reset All</button>'    // ★ 追加
                             . '</div>';
 
                 // 先頭にボタンを挿入
                 $html = $buttonHtml . $html;
                 $event->data = $html;
-
-                // デバッグ用ログ
                 error_log('handle_tpl_content_display: "Hide All" ボタンを挿入しました。');
             } else {
                 // ボタンが既に存在する場合
