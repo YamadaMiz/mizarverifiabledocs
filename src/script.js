@@ -29,7 +29,10 @@ let parserWithMetadata = parser.configure({
     props: [
         highlighting,
         foldNodeProp.add({
-            "Proof": foldInside
+            "DefinitionBlock": foldInside,
+            "Proof": foldInside,
+            "NowBlock": foldInside,
+            "HerebyBlock": foldInside
         })
     ]
 });
