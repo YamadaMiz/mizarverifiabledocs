@@ -34,9 +34,15 @@ class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin
     }
 
     public function render($mode, Doku_Renderer $renderer, $data) {
+        // xhtml以外のモードはスキップ
+        if ($mode != 'xhtml') {
+            return false; 
+        }
         static $mizarCounter = 0; // 一意のカウンターを追加
         list($state,$filename, $content) = $data;
-        $mizarId = 'mizarBlock' . $mizarCounter++; // 一意のIDを生成
+        $mizarId = 'mizarBlock' . $mizarCounter;
+        $blockNumber = $mizarCounter + 1;        // 表示用の番号 (1, 2, 3,...)
+        $mizarCounter++; // カウンターをインクリメント
 
         if ($mode == 'xhtml') {
             // ボタンやエディタのHTMLを生成
@@ -49,7 +55,13 @@ class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin
             $renderer->doc .= '<button id="hideButton' . $mizarId . '" class="hide-button">Hide</button>';
             $renderer->doc .= '<button id="showButton' . $mizarId . '" class="show-button">Show</button>';
 
-            $renderer->doc .= '<dt><a href="#" onclick="createMizarFile(\'' . $filename . '\'); return false;" title="クリックしてコンテンツをダウンロード" class="file-download">' . $filename . '</a></dt>';
+            $renderer->doc .= '<dt>'
+                . '<a href="#" onclick="createMizarFile(\'' . $filename . '\'); return false;" '
+                . ' title="クリックしてコンテンツをダウンロード" class="file-download">'
+                . $filename. '(' . $blockNumber . ') '
+                . '</a>'
+                . '</dt>';
+
             $renderer->doc .= '<dd><div class="editor-container" data-content="' . htmlspecialchars($content) . '"></div></dd>';
             $renderer->doc .= '</dl>';
             $renderer->doc .= '<div id="output' . $mizarId . '" class="output"></div>';
