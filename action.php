@@ -263,6 +263,11 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
     private function streamSourceOutput($filePath)
     {
         $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\');
+        $sharePath = rtrim($this->getConf('mizar_share_dir'), '/\\');
+
+        // ★追加：環境変数 MIZFILESをPHP内で設定
+        putenv("MIZFILES=$sharePath");
+
         chdir($workPath);
 
         $command = "miz2prel " . escapeshellarg($filePath);
@@ -354,6 +359,9 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
     {
         $workPath = $this->getConf('mizar_work_dir');
         $sharePath = rtrim($this->getConf('mizar_share_dir'), '/\\') . '/';
+
+        // ★追加：環境変数 MIZFILESをPHP内で設定
+        putenv("MIZFILES=$sharePath");
 
         chdir($workPath);
 

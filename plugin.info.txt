@@ -1,7 +1,7 @@
 base   mizarverifiabledocs
 author Yamada, M.
 email  yamadam@mizar.work
-date   2025-01-22
+date   2025-03-29
 name   Mizar verifiable docs
 desc   Provides dynamically verifiable documentation of mathematics using Mizar
 url    https://www.dokuwiki.org/plugin:mizarverifiabledocs
