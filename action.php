@@ -135,7 +135,9 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
     private function handleSourceSSERequest()
     {
         header('Content-Type: text/event-stream');
-        header('Cache-Control: no-cache');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
         session_start();
         if (!isset($_SESSION['source_filepath'])) {
@@ -172,7 +174,9 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
     private function handleViewSSERequest()
     {
         header('Content-Type: text/event-stream');
-        header('Cache-Control: no-cache');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
         session_start();
         if (!isset($_SESSION['view_filepath'])) {
@@ -303,7 +307,7 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         return $tempFilename;
     }
 
-    // 一時ファイルの削除
+    // 一時ファイルの削除 (clearTempFiles関数の修正版)
     private function clearTempFiles()
     {
         $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
@@ -314,14 +318,14 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
             if (is_file($file)) {
                 // ファイルが使用中かどうか確認
                 if (!$this->is_file_locked($file)) {
-                    $retries = 3; // 最大3回リトライ
+                    $retries = 5; // リトライを増やす
                     while ($retries > 0) {
-                        if (unlink($file)) {
+                        if (@unlink($file)) {  // ← エラー抑制を追加
                             break; // 削除成功
                         }
                         $errors[] = "Error deleting $file: " . error_get_last()['message'];
                         $retries--;
-                        sleep(1); // 1秒待ってリトライ
+                        sleep(2); // 2秒待ってリトライ
                     }
                     if ($retries === 0) {
                         $errors[] = "Failed to delete: $file";  // 削除失敗
@@ -338,6 +342,7 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
             $this->sendAjaxResponse(false, 'Some files could not be deleted', $errors);
         }
     }
+
 
     // ファイルがロックされているかをチェックする関数
     private function is_file_locked($file)
@@ -456,6 +461,9 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
     private function sendAjaxResponse($success, $message, $data = '')
     {
         header('Content-Type: application/json');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
         echo json_encode(['success' => $success, 'message' => $message, 'data' => $data]);
         exit;
     }
