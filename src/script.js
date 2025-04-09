@@ -414,11 +414,22 @@ function setupMizarBlock(mizarBlock, mizarId) {
   });
 
   compileButton.addEventListener("click", () => {
-    if (mizarBlock.isRequestInProgress) {
-      return;
-    }
-    mizarBlock.isRequestInProgress = true;
-    startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId);
+      if (mizarBlock.isRequestInProgress) {
+          return;
+      }
+      mizarBlock.isRequestInProgress = true;
+
+      // Spinnerを表示 (この処理を追加)
+      const spinner = document.createElement('div');
+      spinner.className = 'loading-spinner';
+      spinner.innerHTML = 'Loading...';
+      compileButton.parentNode.insertBefore(spinner, compileButton.nextSibling);
+
+      startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId).finally(() => {
+          // Spinnerを削除 (レスポンス後に削除)
+          spinner.remove();
+          mizarBlock.isRequestInProgress = false;
+      });
   });
 
   resetButton.addEventListener("click", async () => {

@@ -1,5 +1,5 @@
 /**
- * * DokuWiki Plugin Mizar Verifiable Docs (Source View Script)
+ * DokuWiki Plugin Mizar Verifiable Docs (Source View Script)
  *
  * @author Yamada, M. <yamadam@mizar.work>
  */
@@ -7,10 +7,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const editButtons = document.querySelector('.editButtons');
     if (editButtons && !document.getElementById('edbtn__miz2prel')) {
-        // URLに「&do=edit」が含まれているかチェックすることで全体編集を判定
         const isFullEdit = document.location.search.includes('&do=edit');
 
-        // 全体編集の場合にのみmiz2prelボタンを表示
         if (isFullEdit) {
             const miz2prelButton = document.createElement('button');
             miz2prelButton.textContent = 'miz2prel';
@@ -18,21 +16,19 @@ document.addEventListener('DOMContentLoaded', function() {
             miz2prelButton.type = 'button';
             miz2prelButton.classList.add('miz2prel-button');
 
-            const clearButton = document.createElement('button'); // Clearボタンの作成
+            const clearButton = document.createElement('button');
             clearButton.textContent = 'Clear';
             clearButton.id = 'edbtn__clear';
             clearButton.type = 'button';
             clearButton.classList.add('clear-button');
 
-            // Clearボタンのクリックイベント
             clearButton.addEventListener('click', async function() {
                 const outputDiv = document.getElementById('compileResult');
                 if (outputDiv) {
-                    outputDiv.innerHTML = ''; // 出力内容をクリア
-                    outputDiv.style.backgroundColor = ''; // 背景色をリセット
+                    outputDiv.innerHTML = '';
+                    outputDiv.style.backgroundColor = '';
                 }
 
-                // サーバーに一時ファイルを削除するリクエストを送信
                 try {
                     const response = await fetch(DOKU_BASE + "lib/exe/ajax.php?call=clear_temp_files", {
                         method: "POST",
@@ -51,9 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error("Error clearing temporary files:", error);
                 }
 
-                // Clearボタンを消してmiz2prelボタンを再表示
-                clearButton.style.display = 'none'; // Clearボタンを非表示
-                miz2prelButton.style.display = 'inline-block'; // miz2prelボタンを表示
+                clearButton.style.display = 'none';
+                miz2prelButton.style.display = 'inline-block';
             });
 
             miz2prelButton.addEventListener('click', async function() {
@@ -75,6 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     editBar.parentNode.insertBefore(outputDiv, editBar.nextSibling);
                 }
 
+                // ▼ Spinnerを追加
+                const spinner = document.createElement('div');
+                spinner.className = 'loading-spinner';
+                spinner.innerHTML = 'Loading...';
+                miz2prelButton.parentNode.insertBefore(spinner, miz2prelButton.nextSibling);
+
                 try {
                     const response = await fetch(DOKU_BASE + 'lib/exe/ajax.php?call=source_compile', {
                         method: 'POST',
@@ -87,26 +88,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = await response.json();
 
                     if (data.success) {
-                        // SSEで結果を受信
                         const eventSource = new EventSource(DOKU_BASE + 'lib/exe/ajax.php?call=source_sse');
 
                         eventSource.onmessage = function(event) {
                             outputDiv.innerHTML += event.data + '<br>';
                         };
 
-                        // エラー情報がある場合に受信するイベントリスナー
                         eventSource.addEventListener('compileErrors', function(event) {
                             try {
                                 const errors = JSON.parse(event.data);
-                                let errorContent = ''; // エラー内容を表示するための変数
+                                let errorContent = '';
                                 errors.forEach(function(error) {
                                     const { line, column, message } = error;
-                                    // リンクを削除してエラーメッセージのみを表示
                                     errorContent += `❌ ${message} (Ln: ${line}, Col: ${column})<br>`;
                                 });
-                                outputDiv.innerHTML += errorContent; // エラー情報を表示
-
-                                // エラーメッセージが含まれている場合は背景色を赤にする
+                                outputDiv.innerHTML += errorContent;
                                 outputDiv.style.backgroundColor = '#fcc';
                             } catch (e) {
                                 console.error('Failed to parse error data:', e);
@@ -118,30 +114,41 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (!outputDiv.innerHTML.includes('❌')) {
                                 outputDiv.style.backgroundColor = '#ccffcc';
                             }
-                            eventSource.close(); // 接続を閉じる
+                            eventSource.close();
+
+                            // ▼ Spinnerを削除（コンパイル完了後）
+                            spinner.remove();
                         });
 
                         eventSource.onerror = function(event) {
                             console.error('EventSource failed:', event);
-                            eventSource.close(); // エラー発生時に接続を閉じる
+                            eventSource.close();
+
+                            // ▼ Spinnerを削除（エラー発生時）
+                            spinner.remove();
                         };
 
-                        // miz2prelボタンを消してclearボタンを表示
-                        miz2prelButton.style.display = 'none'; // miz2prelボタンを非表示に
-                        clearButton.style.display = 'inline-block'; // clearボタンを表示
+                        miz2prelButton.style.display = 'none';
+                        clearButton.style.display = 'inline-block';
                     } else {
                         outputDiv.innerHTML = 'Error: ' + data.message;
-                        outputDiv.style.backgroundColor = '#fcc'; // エラーがある場合は背景色を赤にする
+                        outputDiv.style.backgroundColor = '#fcc';
+
+                        // ▼ Spinnerを削除（サーバーレスポンスエラー時）
+                        spinner.remove();
                     }
                 } catch (error) {
                     console.error('Error:', error);
                     outputDiv.innerHTML = 'Error: ' + error;
-                    outputDiv.style.backgroundColor = '#fcc'; // エラーがある場合は背景色を赤にする
+                    outputDiv.style.backgroundColor = '#fcc';
+
+                    // ▼ Spinnerを削除（キャッチ時）
+                    spinner.remove();
                 }
             });
 
             editButtons.appendChild(miz2prelButton);
-            editButtons.appendChild(clearButton); // Clearボタンを追加
+            editButtons.appendChild(clearButton);
         }
     }
 });
