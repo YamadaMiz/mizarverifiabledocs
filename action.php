@@ -55,11 +55,7 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
                 // 先頭にボタンを挿入
                 $html = $buttonHtml . $html;
                 $event->data = $html;
-                error_log('handle_tpl_content_display: "Hide All" ボタンを挿入しました。');
-            } else {
-                // ボタンが既に存在する場合
-                error_log('handle_tpl_content_display: "Hide All" ボタンは既に存在します。');
-            }
+            } 
         }
     }
 
@@ -104,6 +100,11 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
                 $event->stopPropagation();
                 $this->handle_create_combined_file();
                 break;
+            case 'view_graph':
+                $event->preventDefault();
+                $event->stopPropagation();
+                $this->handleViewGraphRequest();
+            break;
         }
     }
 
@@ -193,6 +194,38 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         echo "data: Compilation complete\n\n";
         ob_flush();
         flush();
+    }
+
+    /*****  view_graph: 上から該当ブロックまでを結合し SVG を返す *****/
+    private function handleViewGraphRequest()
+    {
+        global $INPUT;
+        $content = $INPUT->post->str('content', '');
+
+        // 空チェック
+        if ($content === '') {
+            $this->sendAjaxResponse(false, 'Empty content');
+            return;
+        }
+
+        // 一時 .miz ファイルを作成
+        $tmp = tempnam(sys_get_temp_dir(), 'miz');
+        $miz = $tmp . '.miz';
+        rename($tmp, $miz);                // tempnam が拡張子無しなのでリネーム
+        file_put_contents($miz, $content);
+
+        // Python 可視化スクリプト呼び出し
+        $parser = escapeshellarg(__DIR__ . '/script/miz2svg.py');
+        $py     = escapeshellcmd($this->getConf('py_cmd') ?: 'python');
+        $svg    = shell_exec("$py $parser ".escapeshellarg($miz));
+        unlink($miz);                       // 後片付け
+
+        // 結果返却
+        if ($svg) {
+            $this->sendAjaxResponse(true, 'success', ['svg' => $svg]);
+        } else {
+            $this->sendAjaxResponse(false, 'conversion failed');
+        }
     }
 
     // Mizarコンテンツの抽出

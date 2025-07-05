@@ -17,7 +17,8 @@
 .copy-button,
 .hide-all-button,
 .reset-all-button,
-.hide-button
+.hide-button,
+.graph-button
  {
     font: inherit;
 }
@@ -43,6 +44,38 @@
     margin-top: 10px;
     white-space: pre-wrap;
     display: none; /* 初期状態では非表示 */
+}
+
+/* 図を枠内に収めつつ崩れを防ぐ */
+.output svg{
+    max-width:100%;
+    height:auto;
+    display:block;
+}
+
+.graph-wrapper {
+  position: relative;
+}
+
+/* 右上に浮かせる小さな ✖ ボタン */
+.close-graph {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #f44336;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.close-graph:hover {
+  background: #d32f2f;
 }
 
 /* カスタムテーマ */

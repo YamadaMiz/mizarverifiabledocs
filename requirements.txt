@@ -1,0 +1,4 @@
+graphviz==0.21
+networkx==3.5
+pydot==4.0.1
+pyparsing==3.2.3

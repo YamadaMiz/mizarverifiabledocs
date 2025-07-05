@@ -53,6 +53,7 @@ class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin
             $renderer->doc .= '<button id="editButton' . $mizarId . '" class="edit-button">Edit</button>';
             $renderer->doc .= '<button id="compileButton' . $mizarId . '" class="compile-button">Compile</button>';
             $renderer->doc .= '<button id="hideButton' . $mizarId . '" class="hide-button">Hide</button>';
+            $renderer->doc .= '<button id="graphButton' . $mizarId . '" class="graph-button">Graph</button>';   // ★追加
             $renderer->doc .= '<button id="showButton' . $mizarId . '" class="show-button">Show</button>';
 
             $renderer->doc .= '<dt>'

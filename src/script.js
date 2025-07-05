@@ -403,6 +403,7 @@ function setupMizarBlock(mizarBlock, mizarId) {
   const editButton = mizarBlock.querySelector("button[id^='editButton']");
   const compileButton = mizarBlock.querySelector("button[id^='compileButton']");
   const resetButton = mizarBlock.querySelector("button[id^='resetButton']");
+  const graphButton = mizarBlock.querySelector("button[id^='graphButton']");
 
   editButton.addEventListener("click", () => {
     editor.dispatch({
@@ -485,6 +486,24 @@ function setupMizarBlock(mizarBlock, mizarId) {
       console.error("Error clearing temporary files:", error);
     }
   });
+
+  graphButton.addEventListener("click", () => {
+    if (mizarBlock.isRequestInProgress) return;
+    mizarBlock.isRequestInProgress = true;
+
+    // スピナー表示（任意）
+    const spinner = document.createElement("div");
+    spinner.className = "loading-spinner";
+    spinner.textContent = "Visualizing...";
+    graphButton.parentNode.insertBefore(spinner, graphButton.nextSibling);
+
+    startGraphVisualization(mizarBlock, mizarId)
+      .finally(() => {
+        spinner.remove();
+        mizarBlock.isRequestInProgress = false;
+      });
+  });
+
 }
 
 // -----------------------------
@@ -624,6 +643,52 @@ async function startMizarCompilation(mizarBlock, toggleErrorPanel, mizarId) {
   } catch (error) {
     console.error("Fetch error: ", error);
     mizarBlock.isRequestInProgress = false;
+  }
+}
+//-----------------------------
+// ★ Graph 可視化処理
+//-----------------------------
+async function startGraphVisualization(mizarBlock, mizarId) {
+  const combined = getCombinedContentUntil(mizarBlock);   // 既存関数を再利用
+  const data = "content=" + encodeURIComponent(combined);
+
+  try {
+    const res = await fetch(
+      DOKU_BASE + "lib/exe/ajax.php?call=view_graph",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: data,
+      }
+    );
+    if (!res.ok) throw new Error("network error");
+
+    // ── JSON を 1 変数で受けて衝突を回避 ──
+    const json = await res.json();
+    const out  = mizarBlock.querySelector(`#outputmizarBlock${mizarId}`);
+
+    if (json.success) {
+      /* ▼ SVG と X ボタンをまとめて挿入 */
+      out.innerHTML =
+        `<div class="graph-wrapper">
+          <button class="close-graph" title="Close">✖</button>
+          ${json.data.svg}
+        </div>`;
+      out.style.display = 'block';
+
+      /* ▼ ボタンにイベントを付与 */
+      out.querySelector('.close-graph').addEventListener('click', () => {
+        out.innerHTML = '';
+        out.style.display = 'none';
+      });
+    } else {
+      out.innerHTML = `<pre class="err">${json.data.err}</pre>`;
+      out.style.display = 'block';
+    }
+
+  } catch (e) {
+    console.error(e);
+    alert("Graph generation failed: " + e.message);
   }
 }
 
