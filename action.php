@@ -6,133 +6,180 @@ use dokuwiki\Extension\Event;
 
 /**
  * DokuWiki Plugin Mizar Verifiable Docs (Action Component)
- *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Yamada, M.
+ * @author  Yamada
  */
-
 class action_plugin_mizarverifiabledocs extends ActionPlugin
 {
-    /**
-     * Registers a callback function for a given event
-     *
-     * @param EventHandler $controller DokuWiki's event controller object
-     * @return void
-     */
+    /* ===================== Register ===================== */
+
     public function register(EventHandler $controller)
     {
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handle_ajax_call');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'handle_tpl_content_display');
     }
 
-    /**
-     * Handles the TPL_CONTENT_DISPLAY event to insert "Hide All" button
-     *
-     * @param Event $event
-     * @param mixed $_param Unused parameter
-     * @return void
-     */
     public function handle_tpl_content_display(Event $event, $_param)
     {
-        // データが文字列かどうか確認
-        if (!is_string($event->data)) {
-            error_log('handle_tpl_content_display: data is not a string! ' . print_r($event->data, true));
-            return;
-        }
+        if (!is_string($event->data)) return;
 
         $html = $event->data;
-
-        // "mizarWrapper" クラスが存在するか確認
-        if (strpos($html, 'mizarWrapper') !== false) {
-            // 既にボタンが挿入されているか確認（複数回挿入しないため）
-            if (strpos($html, 'id="hideAllButton"') === false) {
-                $buttonHtml = '<div class="hideAllContainer">'
-                            . '<button id="hideAllButton" class="hide-all-button">Hide All</button>'
-                            . '<button id="showAllButton" class="hide-all-button" style="display:none;">Show All</button>'
-                            . '<button id="resetAllButton" class="reset-all-button">Reset All</button>'    // ★ 追加
-                            . '</div>';
-
-                // 先頭にボタンを挿入
-                $html = $buttonHtml . $html;
-                $event->data = $html;
-            } 
+        if (strpos($html, 'mizarWrapper') !== false && strpos($html, 'id="hideAllButton"') === false) {
+            $buttonHtml = '<div class="hideAllContainer">'
+                        . '<button id="hideAllButton" class="hide-all-button">Hide All</button>'
+                        . '<button id="showAllButton" class="hide-all-button" style="display:none;">Show All</button>'
+                        . '<button id="resetAllButton" class="reset-all-button">Reset All</button>'
+                        . '</div>';
+            $event->data = $buttonHtml . $html;
         }
+    }
+
+    public function handle_ajax_call(Event $event, $param)
+    {
+        unset($param);
+        switch ($event->data) {
+            case 'clear_temp_files':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->clearTempFiles(); break;
+
+            case 'source_compile':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->handleSourceCompileRequest(); break;
+
+            case 'source_sse':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->handleSourceSSERequest(); break;
+
+            case 'view_compile':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->handleViewCompileRequest(); break;
+
+            case 'view_sse':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->handleViewSSERequest(); break;
+
+            case 'create_combined_file':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->handle_create_combined_file(); break;
+
+            case 'view_graph':
+                $event->preventDefault(); $event->stopPropagation();
+                $this->handleViewGraphRequest(); break;
+        }
+    }
+
+    /* ===================== Helpers ===================== */
+
+    private function isWindows(): bool {
+        return strncasecmp(PHP_OS, 'WIN', 3) === 0;
+    }
+
+    /** 設定→未設定なら htdocs(= DOKU_INC の1つ上) 相対にフォールバックして正規化 */
+    private function resolvePaths(): array
+    {
+        // DokuWiki ルート（末尾スラッシュなしに正規化）
+        $dokuroot = rtrim(realpath(DOKU_INC), '/\\');
+
+        // htdocs を「dokuwiki の 1つ上」から求める
+        $htdocs = realpath($dokuroot . DIRECTORY_SEPARATOR . '..');
+        if ($htdocs === false) $htdocs = dirname($dokuroot);
+
+        $defM = $htdocs . DIRECTORY_SEPARATOR . 'MIZAR';
+        $defW = $htdocs . DIRECTORY_SEPARATOR . 'work';
+
+        // 設定値取得（空ならフォールバック）。相対指定が来たら htdocs 基準に解決
+        $exe   = trim((string)$this->getConf('mizar_exe_dir'));
+        $share = trim((string)$this->getConf('mizar_share_dir'));
+        $work  = trim((string)$this->getConf('mizar_work_dir'));
+
+        $isAbs = function(string $p): bool {
+            // Windowsドライブ/UNC/Unix ざっくり対応
+            return $p !== '' && (preg_match('~^[A-Za-z]:[\\/]|^\\\\\\\\|^/~', $p) === 1);
+        };
+
+        if ($exe   !== '' && !$isAbs($exe))   $exe   = $htdocs . DIRECTORY_SEPARATOR . $exe;
+        if ($share !== '' && !$isAbs($share)) $share = $htdocs . DIRECTORY_SEPARATOR . $share;
+        if ($work  !== '' && !$isAbs($work))  $work  = $htdocs . DIRECTORY_SEPARATOR . $work;
+
+        $exe   = rtrim($exe   ?: $defM, '/\\');
+        $share = rtrim($share ?: $defM, '/\\');
+        $work  = rtrim($work  ?: $defW, '/\\');
+
+        return ['exe' => $exe, 'share' => $share, 'work' => $work];
+    }
+
+    /** exeDir 直下 or exeDir\bin から実行ファイルを探す（.exe/.bat/.cmd 対応） */
+    private function findExe(string $exeDir, string $name): ?string
+    {
+        if ($this->isWindows()) {
+            $candidates = [
+                "$exeDir\\$name.exe",          "$exeDir\\bin\\$name.exe",
+                "$exeDir\\$name.bat",          "$exeDir\\bin\\$name.bat",
+                "$exeDir\\$name.cmd",          "$exeDir\\bin\\$name.cmd",
+                "$exeDir\\windows\\bin\\$name.exe",
+                "$exeDir\\win\\bin\\$name.exe",
+            ];
+        } else {
+            $candidates = [
+                "$exeDir/$name",               "$exeDir/bin/$name",
+            ];
+        }
+        foreach ($candidates as $p) {
+            if (is_file($p)) return $p;
+        }
+        return null;
+    }
+
+    /** 出力をUTF-8へ（WinはSJIS-WIN想定） */
+    private function outUTF8(string $s): string
+    {
+        return $this->isWindows() ? mb_convert_encoding($s, 'UTF-8', 'SJIS-WIN') : $s;
     }
 
     /**
-     * Handles AJAX requests
-     *
-     * @param Event $event
-     * @param $param
+     * .exe は配列＋bypass_shell、.bat/.cmd は「cmd /C ""...""」の文字列＋shell経由で起動
+     * @return array [$proc, $pipes] 失敗時は [null, []]
      */
-    public function handle_ajax_call(Event $event, $param)
+    private function openProcess(string $exeOrBat, array $args, string $cwd): array
     {
-        unset($param); // 未使用のパラメータを無効化
+        $des = [1 => ['pipe','w'], 2 => ['pipe','w']];
 
-        switch ($event->data) {
-            case 'clear_temp_files':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->clearTempFiles();
-                break;
-            case 'source_sse':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->handleSourceSSERequest();
-                break;
-            case 'source_compile':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->handleSourceCompileRequest();
-                break;
-            case 'view_compile':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->handleViewCompileRequest();
-                break;
-            case 'view_sse':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->handleViewSSERequest();
-                break;
-            case 'create_combined_file':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->handle_create_combined_file();
-                break;
-            case 'view_graph':
-                $event->preventDefault();
-                $event->stopPropagation();
-                $this->handleViewGraphRequest();
-            break;
+        if ($this->isWindows() && preg_match('/\.(bat|cmd)$/i', $exeOrBat)) {
+            // cmd /C ""C:\path\tool.bat" "arg1" "arg2""
+            $cmd = 'cmd.exe /C "'
+                 . '"' . $exeOrBat . '"';
+            foreach ($args as $a) {
+                $cmd .= ' ' . escapeshellarg($a);
+            }
+            $cmd .= '"';
+            $proc = proc_open($cmd, $des, $pipes, $cwd); // shell経由（bypass_shell=false）
+        } else {
+            $cmd = array_merge([$exeOrBat], $args);
+            $proc = proc_open($cmd, $des, $pipes, $cwd, null, ['bypass_shell' => true]);
         }
+
+        if (!is_resource($proc)) return [null, []];
+        return [$proc, $pipes];
     }
 
-    // source用のコンパイルリクエスト処理
+    /* ===================== Source ===================== */
+
     private function handleSourceCompileRequest()
     {
         global $INPUT;
         $pageContent = $INPUT->post->str('content');
         $mizarData = $this->extractMizarContent($pageContent);
 
-        // エラーチェックを追加
-        if ($mizarData === null) {
-            $this->sendAjaxResponse(false, 'Mizar content not found');
-            return;
-        } elseif (isset($mizarData['error'])) {
-            $this->sendAjaxResponse(false, $mizarData['error']);
-            return;
-        }
+        if ($mizarData === null) { $this->sendAjaxResponse(false, 'Mizar content not found'); return; }
+        if (isset($mizarData['error'])) { $this->sendAjaxResponse(false, $mizarData['error']); return; }
 
         $filePath = $this->saveMizarContent($mizarData);
-
-        session_start();
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
         $_SESSION['source_filepath'] = $filePath;
 
         $this->sendAjaxResponse(true, 'Mizar content processed successfully');
     }
 
-    // source用のSSEリクエスト処理
     private function handleSourceSSERequest()
     {
         header('Content-Type: text/event-stream');
@@ -140,38 +187,32 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        session_start();
-        if (!isset($_SESSION['source_filepath'])) {
-            echo "data: Mizar file path not found in session\n\n";
-            ob_flush();
-            flush();
-            return;
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+        if (empty($_SESSION['source_filepath'])) {
+            echo "data: Mizar file path not found in session\n\n"; @ob_flush(); @flush(); return;
         }
 
-        $filePath = $_SESSION['source_filepath'];
-        $this->streamSourceOutput($filePath);
+        $this->streamSourceOutput($_SESSION['source_filepath']);
 
         echo "event: end\n";
         echo "data: Compilation complete\n\n";
-        ob_flush();
-        flush();
+        @ob_flush(); @flush();
     }
 
-    // view用のコンパイルリクエスト処理
+    /* ===================== View ===================== */
+
     private function handleViewCompileRequest()
     {
         global $INPUT;
         $content = $INPUT->post->str('content');
-
         $filePath = $this->createTempFile($content);
 
-        session_start();
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
         $_SESSION['view_filepath'] = $filePath;
 
         $this->sendAjaxResponse(true, 'Mizar content processed successfully');
     }
 
-    // view用のSSEリクエスト処理
     private function handleViewSSERequest()
     {
         header('Content-Type: text/event-stream');
@@ -179,316 +220,222 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        session_start();
-        if (!isset($_SESSION['view_filepath'])) {
-            echo "data: Mizar file path not found in session\n\n";
-            ob_flush();
-            flush();
-            return;
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+        if (empty($_SESSION['view_filepath'])) {
+            echo "data: Mizar file path not found in session\n\n"; @ob_flush(); @flush(); return;
         }
 
-        $filePath = $_SESSION['view_filepath'];
-        $this->streamViewCompileOutput($filePath);
+        $this->streamViewCompileOutput($_SESSION['view_filepath']);
 
         echo "event: end\n";
         echo "data: Compilation complete\n\n";
-        ob_flush();
-        flush();
+        @ob_flush(); @flush();
     }
 
-    /*****  view_graph: 上から該当ブロックまでを結合し SVG を返す *****/
+    /***** view_graph: SVG を返す *****/
     private function handleViewGraphRequest()
     {
         global $INPUT;
         $content = $INPUT->post->str('content', '');
+        if ($content === '') { $this->sendAjaxResponse(false, 'Empty content'); return; }
 
-        // 空チェック
-        if ($content === '') {
-            $this->sendAjaxResponse(false, 'Empty content');
-            return;
-        }
-
-        // 一時 .miz ファイルを作成
         $tmp = tempnam(sys_get_temp_dir(), 'miz');
         $miz = $tmp . '.miz';
-        rename($tmp, $miz);                // tempnam が拡張子無しなのでリネーム
+        rename($tmp, $miz);
         file_put_contents($miz, $content);
 
-        // Python 可視化スクリプト呼び出し
-        $parser = escapeshellarg(__DIR__ . '/script/miz2svg.py');
-        $py     = escapeshellcmd($this->getConf('py_cmd') ?: 'python');
-        $svg    = shell_exec("$py $parser ".escapeshellarg($miz));
-        unlink($miz);                       // 後片付け
+        $parser = __DIR__ . '/script/miz2svg.py';
+        $py     = $this->getConf('py_cmd') ?: 'python';
+        $svg    = shell_exec(escapeshellcmd($py) . ' ' . escapeshellarg($parser) . ' ' . escapeshellarg($miz));
+        @unlink($miz);
 
-        // 結果返却
-        if ($svg) {
-            $this->sendAjaxResponse(true, 'success', ['svg' => $svg]);
-        } else {
-            $this->sendAjaxResponse(false, 'conversion failed');
-        }
+        if ($svg) $this->sendAjaxResponse(true, 'success', ['svg' => $svg]);
+        else      $this->sendAjaxResponse(false, 'conversion failed');
     }
 
-    // Mizarコンテンツの抽出
+    /* ===================== Content utils ===================== */
+
     private function extractMizarContent($pageContent)
     {
         $pattern = '/<mizar\s+([^>]+)>(.*?)<\/mizar>/s';
-        preg_match_all($pattern, $pageContent, $matches, PREG_SET_ORDER);
+        preg_match_all($pattern, $pageContent, $m, PREG_SET_ORDER);
+        if (empty($m)) return null;
 
-        if (empty($matches)) {
-            return null;
+        $fn   = trim($m[0][1]);
+        $stem = preg_replace('/\.miz$/i', '', $fn);
+        if (!$this->isValidFileName($stem)) {
+            return ['error' => "Invalid characters in file name: '{$stem}'. Only letters, numbers, underscores (_), and apostrophes (') are allowed, up to 8 characters."];
         }
 
-        // 最初のファイル名を取得し、拡張子を除去
-        $fileName = trim($matches[0][1]);
-        $fileNameWithoutExt = preg_replace('/\.miz$/i', '', $fileName);
-
-        // ファイル名のバリデーションを追加
-        if (!$this->isValidFileName($fileNameWithoutExt)) {
-            return ['error' => "Invalid characters in file name: '{$fileNameWithoutExt}'. Only letters, numbers, underscores (_), and apostrophes (') are allowed, up to 8 characters."];
+        $combined = '';
+        foreach ($m as $mm) {
+            $cur = preg_replace('/\.miz$/i', '', trim($mm[1]));
+            if ($cur !== $stem) return ['error' => "File name mismatch in <mizar> tags: '{$stem}' and '{$cur}'"];
+            if (!$this->isValidFileName($cur)) return ['error' => "Invalid characters in file name: '{$cur}'."];
+            $combined .= trim($mm[2]) . "\n";
         }
-
-        $combinedContent = '';
-
-        foreach ($matches as $match) {
-            $currentFileName = trim($match[1]);
-            $currentFileNameWithoutExt = preg_replace('/\.miz$/i', '', $currentFileName);
-
-            if ($currentFileNameWithoutExt !== $fileNameWithoutExt) {
-                return ['error' => "File name mismatch in <mizar> tags: '{$fileNameWithoutExt}' and '{$currentFileNameWithoutExt}'"];
-            }
-
-            // バリデーションを各ファイル名にも適用
-            if (!$this->isValidFileName($currentFileNameWithoutExt)) {
-                return ['error' => "Invalid characters in file name: '{$currentFileNameWithoutExt}'. Only letters, numbers, underscores (_), and apostrophes (') are allowed, up to 8 characters."];
-            }
-
-            $combinedContent .= trim($match[2]) . "\n";
-        }
-
-        // ファイル名に拡張子を付加
-        $fullFileName = $fileNameWithoutExt . '.miz';
-
-        return ['fileName' => $fullFileName, 'content' => $combinedContent];
+        return ['fileName' => $stem . '.miz', 'content' => $combined];
     }
 
-    // ファイル名のバリデーション関数を追加
     private function isValidFileName($fileName)
     {
-        // ファイル名の長さをチェック（最大8文字）
-        if (strlen($fileName) > 8) {
-            return false;
-        }
-
-        // 許可される文字のみを含むかチェック
-        if (!preg_match('/^[A-Za-z0-9_\']+$/', $fileName)) {
-            return false;
-        }
-
-        return true;
+        if (strlen($fileName) > 8) return false;
+        return (bool)preg_match('/^[A-Za-z0-9_\']+$/', $fileName);
     }
 
-    // Mizarコンテンツの保存
     private function saveMizarContent($mizarData)
     {
-        $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\');
-        $filePath = $workPath . "/TEXT/" . $mizarData['fileName'];
+        $paths = $this->resolvePaths();
+        $textDir = $paths['work'] . DIRECTORY_SEPARATOR . 'TEXT';
+        if (!is_dir($textDir)) @mkdir($textDir, 0777, true);
+
+        $filePath = $textDir . DIRECTORY_SEPARATOR . $mizarData['fileName'];
         file_put_contents($filePath, $mizarData['content']);
         return $filePath;
     }
 
-    // source用の出力をストリーム
-    private function streamSourceOutput($filePath)
-    {
-        $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\');
-        $sharePath = rtrim($this->getConf('mizar_share_dir'), '/\\');
-
-        // ★追加：環境変数 MIZFILESをPHP内で設定
-        putenv("MIZFILES=$sharePath");
-
-        chdir($workPath);
-
-        $command = "miz2prel " . escapeshellarg($filePath);
-        $process = proc_open($command, array(1 => array("pipe", "w")), $pipes);
-
-        if (is_resource($process)) {
-            while ($line = fgets($pipes[1])) {
-                echo "data: " . $line . "\n\n";
-                ob_flush();
-                flush();
-            }
-            fclose($pipes[1]);
-
-            // エラー処理の追加
-            $errFilename = str_replace('.miz', '.err', $filePath);
-            if ($this->handleCompilationErrors($errFilename, rtrim($this->getConf('mizar_share_dir'), '/\\') . '/mizar.msg')) {
-                // エラーがあった場合は処理を終了
-                proc_close($process);
-                return;
-            }
-
-            proc_close($process);
-        }
-    }
-
-    // view用の一時ファイル作成
     private function createTempFile($content)
     {
-        $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
-        $uniqueName = str_replace('.', '_', uniqid('tmp', true));
-        $tempFilename = $workPath . $uniqueName . ".miz";
+        $paths = $this->resolvePaths();
+        $textDir = $paths['work'] . DIRECTORY_SEPARATOR . 'TEXT';
+        if (!is_dir($textDir)) @mkdir($textDir, 0777, true);
+
+        $tempFilename = $textDir . DIRECTORY_SEPARATOR . str_replace('.', '_', uniqid('tmp', true)) . ".miz";
         file_put_contents($tempFilename, $content);
         return $tempFilename;
     }
 
-    // 一時ファイルの削除 (clearTempFiles関数の修正版)
     private function clearTempFiles()
     {
-        $workPath = rtrim($this->getConf('mizar_work_dir'), '/\\') . '/TEXT/';
-        $files = glob($workPath . '*');  // TEXTフォルダ内のすべてのファイルを取得
+        $paths = $this->resolvePaths();
+        $dir = $paths['work'] . DIRECTORY_SEPARATOR . 'TEXT' . DIRECTORY_SEPARATOR;
+        $files = glob($dir . '*');
 
         $errors = [];
-        foreach ($files as $file) {
-            if (is_file($file)) {
-                // ファイルが使用中かどうか確認
-                if (!$this->is_file_locked($file)) {
-                    $retries = 5; // リトライを増やす
-                    while ($retries > 0) {
-                        if (@unlink($file)) {  // ← エラー抑制を追加
-                            break; // 削除成功
-                        }
-                        $errors[] = "Error deleting $file: " . error_get_last()['message'];
-                        $retries--;
-                        sleep(2); // 2秒待ってリトライ
-                    }
-                    if ($retries === 0) {
-                        $errors[] = "Failed to delete: $file";  // 削除失敗
-                    }
+        foreach ($files as $f) {
+            if (is_file($f)) {
+                if (!$this->is_file_locked($f)) {
+                    $ok = false; $retries = 5;
+                    while ($retries-- > 0) { if (@unlink($f)) { $ok = true; break; } sleep(2); }
+                    if (!$ok) $errors[] = "Failed to delete: $f";
                 } else {
-                    $errors[] = "File is locked: $file";  // ファイルがロックされている
+                    $errors[] = "File is locked: $f";
                 }
             }
         }
-
-        if (empty($errors)) {
-            $this->sendAjaxResponse(true, 'Temporary files cleared successfully');
-        } else {
-            $this->sendAjaxResponse(false, 'Some files could not be deleted', $errors);
-        }
+        if ($errors) $this->sendAjaxResponse(false, 'Some files could not be deleted', $errors);
+        else         $this->sendAjaxResponse(true, 'Temporary files cleared successfully');
     }
 
-
-    // ファイルがロックされているかをチェックする関数
     private function is_file_locked($file)
     {
-        $fileHandle = @fopen($file, "r+");
-
-        if ($fileHandle === false) {
-            return true; // ファイルが開けない、つまりロックされているかアクセス権がない
-        }
-
-        $locked = !flock($fileHandle, LOCK_EX | LOCK_NB); // ロックの取得を試みる（非ブロッキングモード）
-
-        fclose($fileHandle);
-        return $locked; // ロックが取得できなければファイルはロックされている
+        $fp = @fopen($file, "r+");
+        if ($fp === false) return true;
+        $locked = !flock($fp, LOCK_EX | LOCK_NB);
+        fclose($fp);
+        return $locked;
     }
 
-    // View用コンパイル出力のストリーム
-    private function streamViewCompileOutput($filePath)
+    /* ===================== Run (miz2prel/makeenv/verifier) ===================== */
+
+    private function streamSourceOutput($filePath)
     {
-        $workPath = $this->getConf('mizar_work_dir');
-        $sharePath = rtrim($this->getConf('mizar_share_dir'), '/\\') . '/';
+        $paths = $this->resolvePaths();
+        $workPath  = $paths['work'];
+        $sharePath = $paths['share'];
+        putenv("MIZFILES={$sharePath}");
 
-        // ★追加：環境変数 MIZFILESをPHP内で設定
-        putenv("MIZFILES=$sharePath");
+        $exe = $this->findExe($paths['exe'], 'miz2prel');
+        if ($exe === null) {
+            echo "data: ERROR: miz2prel not found under {$paths['exe']} (or bin)\n\n"; @ob_flush(); @flush(); return;
+        }
 
-        chdir($workPath);
+        [$proc, $pipes] = $this->openProcess($exe, [$filePath], $workPath);
+        if (!$proc) { echo "data: ERROR: Failed to execute miz2prel.\n\n"; @ob_flush(); @flush(); return; }
+
+        while (($line = fgets($pipes[1])) !== false) { echo "data: " . $this->outUTF8($line) . "\n\n"; @ob_flush(); @flush(); }
+        fclose($pipes[1]);
+        while (($line = fgets($pipes[2])) !== false) { echo "data: ERROR: " . $this->outUTF8($line) . "\n\n"; @ob_flush(); @flush(); }
+        fclose($pipes[2]);
+        proc_close($proc);
 
         $errFilename = str_replace('.miz', '.err', $filePath);
-        $command = "makeenv " . escapeshellarg($filePath);
-        $process = proc_open($command, array(1 => array("pipe", "w"), 2 => array("pipe", "w")), $pipes);
-
-        if (is_resource($process)) {
-            while ($line = fgets($pipes[1])) {
-                echo "data: " . mb_convert_encoding($line, 'UTF-8', 'SJIS') . "\n\n";
-                ob_flush();
-                flush();
-            }
-            fclose($pipes[1]);
-
-            while ($line = fgets($pipes[2])) {
-                echo "data: ERROR: " . mb_convert_encoding($line, 'UTF-8', 'SJIS') . "\n\n";
-                ob_flush();
-                flush();
-            }
-            fclose($pipes[2]);
-            proc_close($process);
-
-            // makeenvのエラー処理
-            if ($this->handleCompilationErrors($errFilename, $sharePath . '/mizar.msg')) {
-                return;
-            }
-
-            // verifierの実行
-            $exePath = rtrim($this->getConf('mizar_exe_dir'), '/\\') . '/';
-            $verifierPath = escapeshellarg($exePath . "verifier");
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $verifierPath .= ".exe";
-            }
-            $verifierCommand = $verifierPath . " -q -l " . escapeshellarg("TEXT/" . basename($filePath));
-
-            $verifierProcess = proc_open($verifierCommand, array(1 => array("pipe", "w"), 2 => array("pipe", "w")), $verifierPipes);
-
-            if (is_resource($verifierProcess)) {
-                while ($line = fgets($verifierPipes[1])) {
-                    echo "data: " . mb_convert_encoding($line, 'UTF-8', 'SJIS') . "\n\n";
-                    ob_flush();
-                    flush();
-                }
-                fclose($verifierPipes[1]);
-
-                while ($line = fgets($verifierPipes[2])) {
-                    echo "data: ERROR: " . mb_convert_encoding($line, 'UTF-8', 'SJIS') . "\n\n";
-                    ob_flush();
-                    flush();
-                }
-                fclose($verifierPipes[2]);
-                proc_close($verifierProcess);
-
-                // verifierのエラー処理
-                if ($this->handleCompilationErrors($errFilename, $sharePath . '/mizar.msg')) {
-                    return;
-                }
-            } else {
-                echo "data: ERROR: Failed to execute verifier command.\n\n";
-                ob_flush();
-                flush();
-            }
-        } else {
-            echo "data: ERROR: Failed to execute makeenv command.\n\n";
-            ob_flush();
-            flush();
-        }
+        $this->handleCompilationErrors($errFilename, $sharePath . DIRECTORY_SEPARATOR . 'mizar.msg');
     }
+
+    private function streamViewCompileOutput($filePath)
+    {
+        $paths = $this->resolvePaths();
+        $workPath  = $paths['work'];
+        $sharePath = $paths['share'];
+        putenv("MIZFILES={$sharePath}");
+
+        // makeenv
+        $makeenv = $this->findExe($paths['exe'], 'makeenv');
+        if ($makeenv === null) { echo "data: ERROR: makeenv not found under {$paths['exe']} (or bin)\n\n"; @ob_flush(); @flush(); return; }
+        [$proc, $pipes] = $this->openProcess($makeenv, [$filePath], $workPath);
+        if (!$proc) { echo "data: ERROR: Failed to execute makeenv.\n\n"; @ob_flush(); @flush(); return; }
+        while (($line = fgets($pipes[1])) !== false) { echo "data: " . $this->outUTF8($line) . "\n\n"; @ob_flush(); @flush(); }
+        fclose($pipes[1]);
+        while (($line = fgets($pipes[2])) !== false) { echo "data: ERROR: " . $this->outUTF8($line) . "\n\n"; @ob_flush(); @flush(); }
+        fclose($pipes[2]);
+        proc_close($proc);
+
+        $errFilename = str_replace('.miz', '.err', $filePath);
+        if ($this->handleCompilationErrors($errFilename, $sharePath . DIRECTORY_SEPARATOR . 'mizar.msg')) return;
+
+        // verifier
+        $verifier = $this->findExe($paths['exe'], 'verifier');
+        if ($verifier === null) { echo "data: ERROR: verifier not found under {$paths['exe']} (or bin)\n\n"; @ob_flush(); @flush(); return; }
+        $rel = 'TEXT' . DIRECTORY_SEPARATOR . basename($filePath);
+        [$proc, $pipes] = $this->openProcess($verifier, ['-q','-l',$rel], $workPath);
+        if (!$proc) { echo "data: ERROR: Failed to execute verifier.\n\n"; @ob_flush(); @flush(); return; }
+        while (($line = fgets($pipes[1])) !== false) { echo "data: " . $this->outUTF8($line) . "\n\n"; @ob_flush(); @flush(); }
+        fclose($pipes[1]);
+        while (($line = fgets($pipes[2])) !== false) { echo "data: ERROR: " . $this->outUTF8($line) . "\n\n"; @ob_flush(); @flush(); }
+        fclose($pipes[2]);
+        proc_close($proc);
+
+        $this->handleCompilationErrors($errFilename, $sharePath . DIRECTORY_SEPARATOR . 'mizar.msg');
+    }
+
+    /* ===================== Errors ===================== */
 
     private function getMizarErrorMessages($mizarMsgFile)
     {
+        if (!is_file($mizarMsgFile)) return [];
         $errorMessages = [];
         $lines = file($mizarMsgFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        $isReadingErrorMsg = false;
-        $key = 0;
-
+        $isReading = false; $key = 0;
         foreach ($lines as $line) {
-            if (preg_match('/# (\d+)/', $line, $matches)) {
-                $isReadingErrorMsg = true;
-                $key = intval($matches[1]);
-            } elseif ($isReadingErrorMsg) {
-                $errorMessages[$key] = $line;
-                $isReadingErrorMsg = false;
+            if (preg_match('/# (\d+)/', $line, $m)) { $isReading = true; $key = (int)$m[1]; }
+            elseif ($isReading) { $errorMessages[$key] = $line; $isReading = false; }
+        }
+        return $errorMessages;
+    }
+
+    private function handleCompilationErrors($errFilename, $mizarMsgFilePath)
+    {
+        if (!file_exists($errFilename)) return false;
+        $errs = []; $lines = file($errFilename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $ln) {
+            if (preg_match('/(\d+)\s+(\d+)\s+(\d+)/', $ln, $m)) {
+                $code = (int)$m[3];
+                $errs[] = [
+                    'code'    => $code,
+                    'line'    => (int)$m[1],
+                    'column'  => (int)$m[2],
+                    'message' => $this->getMizarErrorMessages($mizarMsgFilePath)[$code] ?? 'Unknown error'
+                ];
             }
         }
-
-        return $errorMessages;
+        if ($errs) {
+            echo "event: compileErrors\n";
+            echo "data: " . json_encode($errs) . "\n\n";
+            @ob_flush(); @flush();
+            return true;
+        }
+        return false;
     }
 
     private function sendAjaxResponse($success, $message, $data = '')
@@ -501,49 +448,17 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         exit;
     }
 
-    private function handleCompilationErrors($errFilename, $mizarMsgFilePath)
-    {
-        if (file_exists($errFilename)) {
-            $errors = [];
-            $errorLines = file($errFilename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($errorLines as $errorLine) {
-                if (preg_match('/(\d+)\s+(\d+)\s+(\d+)/', $errorLine, $matches)) {
-                    $errorCode = intval($matches[3]);
-                    $errors[] = [
-                        'code' => $errorCode,
-                        'line' => intval($matches[1]),
-                        'column' => intval($matches[2]),
-                        'message' => $this->getMizarErrorMessages($mizarMsgFilePath)[$errorCode] ?? 'Unknown error'
-                    ];
-                }
-            }
-            if (!empty($errors)) {
-                echo "event: compileErrors\n";
-                echo "data: " . json_encode($errors) . "\n\n";
-                ob_flush();
-                flush();
-                return true;
-            }
-        }
-        return false;
-    }
-
     private function handle_create_combined_file()
     {
         global $INPUT;
-
-        // 投稿されたコンテンツを取得
         $combinedContent = $INPUT->post->str('content');
-        $filename = $INPUT->post->str('filename', 'combined_file.miz'); // デフォルトのファイル名を指定
+        $filename = $INPUT->post->str('filename', 'combined_file.miz');
 
-        // ファイルを保存せず、コンテンツを直接返す
         if (!empty($combinedContent)) {
-            // ファイルの内容をレスポンスで返す（PHP側でファイルを作成しない）
             $this->sendAjaxResponse(true, 'File created successfully', [
                 'filename' => $filename,
-                'content' => $combinedContent
+                'content'  => $combinedContent
             ]);
-            error_log("File content sent: " . $filename);
         } else {
             $this->sendAjaxResponse(false, 'Content is empty, no file created');
         }
