@@ -1,18 +1,33 @@
-# Mizar Verifiable Docs Plugin for DokuWiki
+Mizar Verifiable Docs Plugin for DokuWiki
 
-This plugin allows users to embed Mizar article blocks within wiki pages, enabling them to edit and verify mathematical proofs directly. It provides syntax highlighting, error reporting, proof checking, and supports cross-referencing of other articles within the wiki for dynamically verifiable documentation of mathmatics.
+Embed Mizar article blocks in wiki pages so users can edit and verify mathematical proofs directly.
+Provides syntax highlighting, error reporting, proof checking, and cross-references for dynamically
+verifiable documentation of mathematics.
 
-## Documentation
-For detailed information about installation, configuration, and usage, please visit the [Mizar Verifiable Docs Plugin Docs](https://www.dokuwiki.org/plugin:mizarverifiabledocs).
-Usage examples are also available on our [DokuWiki page](https://www.mizar.work/dokuwiki/doku.php?id=start).
+All documentation for this plugin can be found at
+https://www.dokuwiki.org/plugin:mizarverifiabledocs
 
-## Installation
-Refer to the **Documentation** above for detailed installation instructions.
+If you install this plugin manually, make sure it is installed in
+lib/plugins/mizarverifiabledocs/ - if the folder is called different it
+will not work!
 
-### Manual Installation
-If you install this plugin manually, make sure it is installed in:
-`lib/plugins/mizarverifiabledocs/`
-If the folder is named differently, it will not work.
+Please refer to https://www.dokuwiki.org/plugins for additional info
+on how to install plugins in DokuWiki.
 
-## License
-This plugin is released under the MIT License. See the LICENSE file for details.
+----
+Copyright (C) Yamada, M.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+See the COPYING file included with this plugin for details.
+
+Third-party components bundled with this plugin:
+- CodeMirror — MIT License (see licenses/codemirror/LICENSE)
+- Lezer — MIT License (see licenses/lezer/LICENSE)
