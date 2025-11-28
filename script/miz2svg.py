@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2024-2025 Yamada, M.
+
 import sys, subprocess, tempfile, os, networkx as nx
 from pathlib import Path
 from miz_parser import parse_mizar           # 解析だけ借用

@@ -1,10 +1,8 @@
 <?php
-/**
- * DokuWiki Plugin Mizar Verifiable Docs (Syntax Component)
- *
- * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Yamada, M. <yamadam@mizar.work>
- */
+// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-FileCopyrightText: 2024-2025 Yamada, M.
+// DokuWiki Plugin Mizar Verifiable Docs (Syntax Component)
+
 class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin {
     /** @inheritDoc */
     public function getType() {
@@ -36,7 +34,7 @@ class syntax_plugin_mizarverifiabledocs extends \dokuwiki\Extension\SyntaxPlugin
     public function render($mode, Doku_Renderer $renderer, $data) {
         // xhtml以外のモードはスキップ
         if ($mode != 'xhtml') {
-            return false; 
+            return false;
         }
         static $mizarCounter = 0; // 一意のカウンターを追加
         list($state,$filename, $content) = $data;

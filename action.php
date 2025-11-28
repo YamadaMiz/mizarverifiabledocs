@@ -1,14 +1,13 @@
 <?php
+// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-FileCopyrightText: 2024-2025 Yamada, M.
+// DokuWiki Plugin Mizar Verifiable Docs (Action Component)
 
 use dokuwiki\Extension\ActionPlugin;
 use dokuwiki\Extension\EventHandler;
 use dokuwiki\Extension\Event;
 
-/**
- * DokuWiki Plugin Mizar Verifiable Docs (Action Component)
- * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Yamada
- */
+
 class action_plugin_mizarverifiabledocs extends ActionPlugin
 {
     /* ===================== Register ===================== */

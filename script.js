@@ -1,8 +1,7 @@
-/**
- * DokuWiki Plugin Mizar Verifiable Docs (Source View Script)
- *
- * @author Yamada, M. <yamadam@mizar.work>
- */
+// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-FileCopyrightText: 2024-2025 Yamada, M.
+// DokuWiki Plugin Mizar Verifiable Docs (Source View Script)
+
 "use strict";
 document.addEventListener('DOMContentLoaded', function() {
     const editButtons = document.querySelector('.editButtons');

@@ -1,7 +1,6 @@
-/**
- * DokuWiki Plugin Mizar Verifiable Docs (View Screen Script)
- *
- */
+// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-FileCopyrightText: 2024-2025 Yamada, M.
+// DokuWiki Plugin Mizar Verifiable Docs (View Screen Script)
 
 // 必要なモジュールをインポート
 import { EditorState, Compartment, StateEffect, StateField, RangeSetBuilder } from "@codemirror/state";

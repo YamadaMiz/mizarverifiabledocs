@@ -15,7 +15,7 @@ Please refer to https://www.dokuwiki.org/plugins for additional info
 on how to install plugins in DokuWiki.
 
 ----
-Copyright (C) Yamada, M.
+Copyright (C) 2024–2025 Yamada, M.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,3 +31,9 @@ See the COPYING file included with this plugin for details.
 Third-party components bundled with this plugin:
 - CodeMirror — MIT License (see licenses/codemirror/LICENSE)
 - Lezer — MIT License (see licenses/lezer/LICENSE)
+
+Requirements:
+- Python 3.x
+- networkx
+- pyvis
+- Graphviz (dot)
