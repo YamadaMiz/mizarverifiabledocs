@@ -132,6 +132,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         outputDiv.innerHTML = 'Error: ' + data.message;
                         outputDiv.style.backgroundColor = '#fcc';
+                        miz2prelButton.style.display = 'none';
+                        clearButton.style.display = 'inline-block';
 
                         // ▼ Spinnerを削除（サーバーレスポンスエラー時）
                         spinner.remove();
