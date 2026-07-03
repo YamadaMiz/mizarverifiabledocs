@@ -263,14 +263,14 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         $fn   = trim($m[0][1]);
         $stem = preg_replace('/\.miz$/i', '', $fn);
         if (!$this->isValidFileName($stem)) {
-            return ['error' => "Invalid characters in file name: '{$stem}'. Only letters, numbers, underscores (_), and apostrophes (') are allowed, up to 8 characters."];
+            return ['error' => "Invalid file name: '{$stem}'. Only letters, numbers, and underscores (_) are allowed."];
         }
 
         $combined = '';
         foreach ($m as $mm) {
             $cur = preg_replace('/\.miz$/i', '', trim($mm[1]));
             if ($cur !== $stem) return ['error' => "File name mismatch in <mizar> tags: '{$stem}' and '{$cur}'"];
-            if (!$this->isValidFileName($cur)) return ['error' => "Invalid characters in file name: '{$cur}'."];
+            if (!$this->isValidFileName($cur)) return ['error' => "Invalid file name: '{$cur}'. Only letters, numbers, and underscores (_) are allowed."];
             $combined .= trim($mm[2]) . "\n";
         }
         return ['fileName' => $stem . '.miz', 'content' => $combined];
@@ -278,8 +278,7 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
 
     private function isValidFileName($fileName)
     {
-        if (strlen($fileName) > 8) return false;
-        return (bool)preg_match('/^[A-Za-z0-9_\']+$/', $fileName);
+        return (bool)preg_match('/^[A-Za-z0-9_]+$/', $fileName);
     }
 
     private function saveMizarContent($mizarData)
@@ -463,3 +462,4 @@ class action_plugin_mizarverifiabledocs extends ActionPlugin
         }
     }
 }
+
